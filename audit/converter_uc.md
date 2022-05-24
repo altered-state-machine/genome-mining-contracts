@@ -1,7 +1,5 @@
 # Energy Converter contracts use cases
 
-![Architecture](assets/architecture.png)
-
 ## Energy Converter Storage use cases
 
 ![Energy Converter Storage use cases](assets/converter_storage_uc.png)

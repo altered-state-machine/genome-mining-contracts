@@ -1,7 +1,5 @@
 # Staking contracts use cases
 
-![Architecture](assets/architecture.png)
-
 ## Staking Storage use cases
 
 ![Staking Storage contracts use cases](assets/staking_storage_uc.png)
