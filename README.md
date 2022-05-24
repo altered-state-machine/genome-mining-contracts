@@ -1,13 +1,10 @@
 # ASM Genome mining
 
-this is the contract to stake user ASTO or ASTO-USDC LP tokens to create ASTO Energy that could be spent for Gen2 brains minting.
+Gen II brains minting event
 
 ## Audit docs
 
-- [Product requirements](docs/product_reqs.md)
-- [Glossary and project architecture](docs/glossary.md)
-- [Time Contracts Use cases](docs/time_contracts_uc.md)
-- [Energy Centre Contract Use cases](docs/energycentre_contract_uc.md)
+See [audit/readme.md](audit/readme.md)
 
 ## Testing
 
