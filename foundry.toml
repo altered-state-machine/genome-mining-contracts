@@ -1,0 +1,23 @@
+[default]
+eth-rpc-url = "https://rinkeby.infura.io/v3/d6cb81648acd42d6a94187d1caf3d08d"
+libs = ["lib"]
+out = "out"
+remappings = [
+  '@openzeppelin/=node_modules/@openzeppelin',
+  '@uniswap/=node_modules/@uniswap/',
+  'forge-std/=node_modules/@ecmendenhall/forge-std/src/',
+  'ds-test/=node_modules/@ecmendenhall/ds-test/src/',
+  'hardhat/=node_modules/hardhat',
+]
+# solc = "0.8.6" # to use a specific local solc install set the path as `solc = "<path to solc>/solc"`
+src = "tests/"
+
+## set only when the `hardhat` profile is selected
+[hardhat]
+libs = ["node_modules"]
+out = "artifacts"
+src = "contracts"
+
+## set only when the `spells` profile is selected
+[spells]
+## --snip-- more settings
