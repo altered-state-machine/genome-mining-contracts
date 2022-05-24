@@ -1,5 +1,15 @@
 # Architecture
 
+Status: <br>
+
+- [x] DRAFT
+- [ ] APPROVED
+- [ ] SUBMITTED
+- [ ] AUDITED
+- [ ] PASSED & PUBLIC
+
+## Overview
+
 ![GEN II Brains Minting event](assets/architecture.png)
 
 In case we want to update logic we can develop and deploy a completely new logic contract with a hard-coded storage(s) address(es). We should be able to change the address of the contract that has rights to CRUD operations:
@@ -14,7 +24,7 @@ We don’t need to use it to update addresses in the logic contract, as they can
 
 ### Pros:
 
-low complexity, clear logic, good readability, and average development efforts.
+Simple and safe: low complexity, clear logic, good readability, and low development efforts.
 
 ### Cons:
 

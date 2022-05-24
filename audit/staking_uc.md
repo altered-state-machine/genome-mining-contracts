@@ -1,5 +1,13 @@
 # Staking contracts use cases
 
+Status: <br>
+
+- [x] DRAFT
+- [ ] APPROVED
+- [ ] SUBMITTED
+- [ ] AUDITED
+- [ ] PASSED & PUBLIC
+
 ## Staking Storage use cases
 
 ![Staking Storage contracts use cases](assets/staking_storage_uc.png)

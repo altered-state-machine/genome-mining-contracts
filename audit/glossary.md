@@ -1,9 +1,5 @@
 # Glossary
 
-Authors: alex.tikonoff@alteredstatemachine.xyz
-
-Approvers: pulasthi.bandara@alteredstatemachine.xyz, craig.boxall@alteredstatemachine.xyz
-
 Status: <br>
 
 - [x] DRAFT
