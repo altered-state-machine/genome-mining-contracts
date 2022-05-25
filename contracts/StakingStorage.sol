@@ -3,7 +3,6 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -13,13 +12,14 @@ import "./IStaking.sol";
 import "./TimeConstants.sol";
 import "./Tokens.sol";
 import "./Registry.sol";
+import "./Storage.sol";
 
 error WrongAddress(address addr, string errMsg);
 
 /**
- * @dev ASM Genome Mining - ASTO Time contract
+ * @dev ASM Genome Mining - ASTO Staking contract
  */
-contract StakingStorage is IStaking, Tokens, TimeConstants, Pausable, Ownable {
+contract StakingStorage is Storage {
     using SafeERC20 for IERC20;
     bool private initialized = false;
 

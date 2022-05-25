@@ -19,7 +19,11 @@ Prerequisites:
 5. Staking.sol: `init(registryAddress, stakingStorageAddress)`
 6.
 
+to be continue...
+
 ## Testing
+
+### Environment setup
 
 we use Foundry for testing.
 To install it: <br>
@@ -30,6 +34,12 @@ To install it: <br>
 4. `$ cargo install --git https://github.com/gakonst/foundry --bin forge --locked`
 
 more details on installation here: https://github.com/foundry-rs/foundry
+
+### Tests structure
+
+Tests are located in the tests folders. They use TestHelpers, mainly to set some variables.
+
+### Running tests
 
 to run tests:
 `forge test -vv`

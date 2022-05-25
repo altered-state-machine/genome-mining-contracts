@@ -3,7 +3,6 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -45,24 +44,6 @@ contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
         _pause();
         _transferOwnership(multisig);
     }
-
-    // /**
-    //  * @param _registry Registry contract address
-    //  * @param _storage Staking Storage contract address
-    //  */
-    // function init(Registry _registry, IERC20 _storage) external onlyOwner {
-    //     if (address(_registry) == address(0)) {
-    //         revert WrongAddress(_registry, "Invalid Registry address");
-    //     }
-    //     if (address(_storage) == address(0)) {
-    //         revert WrongAddress(_registry, "Invalid StakingStorage address");
-    //     }
-
-    //     stakingStorage = _registry.stakingStorageContract;
-    //     _unpause();
-    //     _transferOwnership(multisig);
-    //     initialized = true;
-    // }
 
     /** ----------------------------------
      * ! Only owner functions

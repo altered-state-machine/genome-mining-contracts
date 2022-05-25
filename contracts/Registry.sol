@@ -9,20 +9,10 @@ import "./StakingStorage.sol";
 import "./Converter.sol";
 import "./ConverterStorage.sol";
 
-error WrongAddress(address addr, string errMsg);
-
 /**
- * @dev ASM Genome Mining - Tokens
- * TOKENS:
- * ------ ASTO ------
- * mainnet: 0x823556202e86763853b40e9cDE725f412e294689
- * rinkeby: ...
- * ------ LBA LP ------
- * mainnet: ..
- * rinkeby: ...
- * ------ LP ------
- * mainnet: ..
- * rinkeby: ...
+ * @dev ASM Genome Mining - Registry contract
+ * @notice We use this contract to manage contracts addresses
+ * @notice when we need to update some of them.
  */
 contract Registry is Ownable {
     address public multisig;
@@ -108,13 +98,5 @@ contract Registry is Ownable {
             // StakingStorage.updateRegistry(_registry);
             // ConverterStorage.updateRegistry(_registry);
         }
-    }
-
-    function _isContract(address addr) internal view returns (bool) {
-        uint256 size;
-        assembly {
-            size := extcodesize(addr)
-        }
-        return size > 0;
     }
 }
