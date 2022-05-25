@@ -33,10 +33,6 @@ contract Registry is Ownable {
     Converter public converterLogicContract;
     ConverterStorage public converterStorageContract;
 
-    IERC20 immutable asto = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lba = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lp = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-
     constructor(
         address _multisig,
         address _stakingLogic,
