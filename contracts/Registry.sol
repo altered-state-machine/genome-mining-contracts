@@ -8,8 +8,7 @@ import "./Staking.sol";
 import "./StakingStorage.sol";
 import "./Converter.sol";
 import "./ConverterStorage.sol";
-
-error WrongAddress(address addr, string errMsg);
+import "./Util.sol";
 
 /**
  * @dev ASM Genome Mining - Tokens
@@ -24,7 +23,7 @@ error WrongAddress(address addr, string errMsg);
  * mainnet: ..
  * rinkeby: ...
  */
-contract Registry is Ownable {
+contract Registry is Util, Ownable {
     address public multisig;
 
     Registry public registryContract;
@@ -107,13 +106,5 @@ contract Registry is Ownable {
             // StakingStorage.updateRegistry(_registry);
             // ConverterStorage.updateRegistry(_registry);
         }
-    }
-
-    function _isContract(address addr) internal view returns (bool) {
-        uint256 size;
-        assembly {
-            size := extcodesize(addr)
-        }
-        return size > 0;
     }
 }
