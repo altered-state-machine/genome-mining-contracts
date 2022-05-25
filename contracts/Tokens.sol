@@ -9,7 +9,24 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * list of tokens we use
  */
 contract Tokens {
-    IERC20 immutable asto = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lba = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lp = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    enum Token {
+        ASTO,
+        LBA,
+        LP
+    }
+
+    IERC20 immutable ASTO_TOKEN =
+        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    IERC20 immutable LBA_TOKEN =
+        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    IERC20 immutable LP_TOKEN =
+        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+
+    mapping(Token => IERC20) tokens;
+
+    constructor() {
+        tokens[Token.ASTO] = ASTO_TOKEN;
+        tokens[Token.LBA] = LBA_TOKEN;
+        tokens[Token.LP] = LP_TOKEN;
+    }
 }

@@ -48,25 +48,25 @@ contract Registry is Ownable {
             address(this)
         );
 
-        if (address(_multisig) == address(0)) {
+        if (!_isContract(_multisig)) {
             revert WrongAddress(_multisig, "Wrong multisig address");
         }
-        if (address(_stakingLogic) == address(0)) {
+        if (!_isContract(_stakingLogic)) {
             revert WrongAddress(_stakingLogic, "Wrong staking logic address");
         }
-        if (address(_stakingStorage) == address(0)) {
+        if (!_isContract(_stakingStorage)) {
             revert WrongAddress(
                 _stakingStorage,
                 "Wrong staking storage address"
             );
         }
-        if (address(_converterLogic) == address(0)) {
+        if (!_isContract(_converterLogic)) {
             revert WrongAddress(
                 _converterLogic,
                 "Wrong converter logic address"
             );
         }
-        if (address(_converterStorage) == address(0)) {
+        if (!_isContract(_converterStorage)) {
             revert WrongAddress(
                 _converterStorage,
                 "Wrong converter storage address"
@@ -107,5 +107,13 @@ contract Registry is Ownable {
             // StakingStorage.updateRegistry(_registry);
             // ConverterStorage.updateRegistry(_registry);
         }
+    }
+
+    function _isContract(address addr) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(addr)
+        }
+        return size > 0;
     }
 }
