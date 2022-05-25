@@ -6,6 +6,19 @@ Gen II brains minting event
 
 See [audit/readme.md](audit/readme.md)
 
+## Deployment
+
+Prerequisites:
+
+- multisig already created
+
+1. Tokens.sol, TimeConstants.sol
+2. StakingStorage.sol, ConverterStorage.sol
+3. Staking.sol, Converter.sol
+4. Registry.sol
+5. Staking.sol: `init(registryAddress, stakingStorageAddress)`
+6.
+
 ## Testing
 
 we use Foundry for testing.

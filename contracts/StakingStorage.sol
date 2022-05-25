@@ -9,34 +9,59 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./ITime.sol";
+import "./IStaking.sol";
 import "./TimeConstants.sol";
+import "./Tokens.sol";
+import "./Registry.sol";
+
+error WrongAddress(address addr, string errMsg);
 
 /**
- * @dev ASM Genome Mining - LP Time contract
+ * @dev ASM Genome Mining - ASTO Time contract
  */
-contract StakingStorage is ITime, TimeConstants, Pausable, Ownable {
+contract StakingStorage is IStaking, Tokens, TimeConstants, Pausable, Ownable {
     using SafeERC20 for IERC20;
+    bool private initialized = false;
 
-    IERC20 public immutable tokenAddress;
+    Staking public manager;
+
+    // Inrementing stake Id used to record history
+    mapping(address => uint16) public stakeIds;
+    // Store stake history per each address keyed by stake Id
+    mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @notice Initialize the contract
      * @param multisig Multisig address as the contract owner
-     * @param _tokenAddress $ASTO contract address
      */
-    constructor(address multisig, IERC20 _tokenAddress) {
-        require(address(multisig) != address(0), "invalid multisig address");
-        require(
-            address(_tokenAddress) != address(0),
-            "invalid contract address"
-        );
+    constructor(address _multisig, IERC20 _storage) {
+        if (address(_multisig) == address(0)) {
+            revert WrongAddress(_multisig, "Invalid Multisig address");
+        }
+        if (address(_storage) == address(0)) {
+            revert WrongAddress(_registry, "Invalid StakingStorage address");
+        }
 
-        // mainnet: 0x823556202e86763853b40e9cDE725f412e294689
-        // rinkeby: ...
-        tokenAddress = _tokenAddress;
+        stakingStorage = _registry.stakingStorageContract;
         _pause();
         _transferOwnership(multisig);
+    }
+
+    /**
+     * @param _registry Registry contract address
+     * @param _storage Staking Storage contract address
+     */
+    function init(Registry _registry, IERC20 _storage) external onlyOwner {
+        if (address(_registry) == address(0)) {
+            revert WrongAddress(_registry, "Invalid Registry address");
+        }
+        if (address(_storage) == address(0)) {
+            revert WrongAddress(_registry, "Invalid StakingStorage address");
+        }
+
+        stakingStorage = _registry.stakingStorageContract;
+        _unpause();
+        _transferOwnership(multisig);
+        initialized = true;
     }
 
     /** ----------------------------------
@@ -45,7 +70,39 @@ contract StakingStorage is ITime, TimeConstants, Pausable, Ownable {
 
     /**
      * @notice
-     * @param _address
+     * @notice
+     * @notice
+     * @notice
+     *
+     * @dev
+     *
+     * @param
      */
-    function func(address _address) external onlyOwner {}
+    function updateHistory(
+        address token,
+        address wallet,
+        uint256 _amount
+    ) public onlyManager {}
+
+    /** ----------------------------------
+     * ! CRUD functions
+     * ----------------------------------- */
+
+    /**
+     * @notice
+     * @notice
+     * @notice
+     * @notice
+     *
+     * @dev
+     *
+     * @param _token - which token to stake
+     * @param _wallet - user address
+     * @param _amount - amount of tokens to stake
+     */
+    function updateHistory(
+        address _token,
+        address _wallet,
+        uint256 _amount
+    ) public onlyManager {}
 }
