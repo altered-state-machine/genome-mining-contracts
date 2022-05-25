@@ -3,20 +3,18 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./IStaking.sol";
-import "./TimeConstants.sol";
-import "./Tokens.sol";
+import "./helpers/IStaking.sol";
+import "./helpers/TimeConstants.sol";
+import "./helpers/Tokens.sol";
 import "./Registry.sol";
-
-error WrongAddress(address addr, string errMsg);
+import "./helpers/Util.sol";
+import "./StakingStorage.sol";
 
 /**
- * @dev ASM Genome Mining - ASTO Time contract
+ * @dev ASM Genome Mining - Staking Logic contract
  */
 contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
     using SafeERC20 for IERC20;
@@ -30,7 +28,8 @@ contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @param multisig Multisig address as the contract owner
+     * @param _multisig Multisig address as the contract owner
+     * @param _storage Storage contract address
      */
     constructor(address _multisig, IERC20 _storage) {
         if (address(_multisig) == address(0)) {

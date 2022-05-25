@@ -3,7 +3,7 @@
 pragma solidity ^0.8.6;
 
 /**
- * @dev ASM Genome Mining - ASTO Time contract
+ * @dev ASM Genome Mining - ASTO Time constants we use
  */
 contract TimeConstants {
     // all variables are public to make them available in tests

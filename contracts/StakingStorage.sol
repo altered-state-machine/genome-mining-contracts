@@ -8,16 +8,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./IStaking.sol";
-import "./TimeConstants.sol";
-import "./Tokens.sol";
+import "./helpers/IStaking.sol";
+import "./helpers/TimeConstants.sol";
+import "./helpers/Tokens.sol";
 import "./Registry.sol";
-import "./Storage.sol";
-
-error WrongAddress(address addr, string errMsg);
+import "./helpers/Util.sol";
 
 /**
- * @dev ASM Genome Mining - ASTO Staking contract
+ * @dev ASM Genome Mining - Staking Storage contract
  */
 contract StakingStorage is Storage {
     using SafeERC20 for IERC20;
@@ -31,7 +29,8 @@ contract StakingStorage is Storage {
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @param multisig Multisig address as the contract owner
+     * @param _multisig Multisig address as the contract owner
+     * @param _storage Storage contract address
      */
     constructor(address _multisig, IERC20 _storage) {
         if (address(_multisig) == address(0)) {
