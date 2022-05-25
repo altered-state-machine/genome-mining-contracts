@@ -39,7 +39,7 @@ contract Registry is Ownable {
         address _converterLogic,
         address _converterStorage
     ) {
-        _changeContracts(
+        changeContracts(
             _stakingLogic,
             _stakingStorage,
             _converterLogic,
@@ -54,13 +54,13 @@ contract Registry is Ownable {
         transferOwnership(_multisig);
     }
 
-    function _changeContracts(
+    function changeContracts(
         address _stakingLogic,
         address _stakingStorage,
         address _converterLogic,
         address _converterStorage,
         address _registry
-    ) internal onlyOwner {
+    ) public onlyOwner {
         if (address(_stakingLogic) == address(0)) {
             revert WrongAddress(_stakingLogic, "Wrong staking logic address");
         }
