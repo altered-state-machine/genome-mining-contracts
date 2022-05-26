@@ -18,7 +18,7 @@ contract PermissionControl is AccessControl {
      * Internal function without access restriction.
      */
     function _updateRole(bytes32 role, address _newAddress) internal {
-        _setupRole(MANAGER_ROLE, _newAddress);
+        _setupRole(role, _newAddress);
         _revokeRole(role, msg.sender);
     }
 
