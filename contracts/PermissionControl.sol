@@ -42,4 +42,16 @@ contract PermissionControl is AccessControl {
     function isConverter(address _converter) public returns (bool) {
         return hasRole(CONVERTER_ROLE, _converter);
     }
+
+    function updateManager(address _manager) external onlyRole(REGISTRY_ROLE) {
+        _updateRole(MANAGER_ROLE, _manager);
+    }
+
+    function updateRegistry(address _registry) external onlyRole(REGISTRY_ROLE) {
+        _updateRole(REGISTRY_ROLE, _registry);
+    }
+
+    function updateConverter(address _converter) external onlyRole(REGISTRY_ROLE) {
+        _updateRole(CONVERTER_ROLE, _converter);
+    }
 }
