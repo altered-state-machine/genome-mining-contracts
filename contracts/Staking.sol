@@ -2,46 +2,72 @@
 
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Tokens.sol";
 import "./Registry.sol";
 import "./helpers/Util.sol";
 import "./StakingStorage.sol";
+import "./helpers/PermissionControl.sol";
 
 /**
  * @dev ASM Genome Mining - Staking Logic contract
  */
-contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
-    using SafeERC20 for IERC20;
-    // bool private initialized = false;
-
-    StakingStorage public stakingStorage;
+contract Staking is
+    IStaking,
+    Tokens,
+    TimeConstants,
+    Util,
+    PermissionControl,
+    Pausable,
+    Ownable
+{
+    bool private initialized = false;
+    address private _multisig;
 
     // Inrementing stake Id used to record history
     mapping(address => uint16) public stakeIds;
+    mapping(uint256 => uint16) public allStakeIds;
     // Store stake history per each address keyed by stake Id
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @param _multisig Multisig address as the contract owner
-     * @param _storage Storage contract address
+     * @param multisig Multisig address as the contract owner
      */
-    constructor(address _multisig, IERC20 _storage) {
-        if (address(_multisig) == address(0)) {
-            revert WrongAddress(_multisig, "Invalid Multisig address");
+    constructor(address multisig) {
+        if (address(multisig) == address(0)) {
+            revert WrongAddress(multisig, "Invalid Multisig address");
         }
-        if (address(_storage) == address(0)) {
-            revert WrongAddress(_registry, "Invalid StakingStorage address");
+        _multisig = multisig;
+        _pause();
+    }
+
+    /**
+     * @param registry Registry contract address
+     * @param stakingStorage Staking Storage contract address
+     */
+    function init(address registry, address stakingStorage) external onlyOwner {
+        require(
+            initialized == false,
+            "It's too late. The contract has already been initialized."
+        );
+        if (!_isContract(registry)) {
+            revert WrongAddress(registry, "Invalid Registry address");
+        }
+        if (!_isContract(stakingStorage)) {
+            revert WrongAddress(
+                stakingStorage,
+                "Invalid Staking Storage address"
+            );
         }
 
-        stakingStorage = _registry.stakingStorageContract;
-        _pause();
-        _transferOwnership(multisig);
+        _setupRole(REGISTRY_ROLE, registry);
+        _unpause();
+        _transferOwnership(_multisig);
+
+        initialized = true;
     }
 
     /** ----------------------------------
@@ -54,7 +80,7 @@ contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
      * @param amount Token amount to withdraw
      */
     function withdraw(
-        address token,
+        Token token,
         address recipient,
         uint256 amount
     )
@@ -63,11 +89,11 @@ contract Staking is IStaking, Tokens, TimeConstants, Pausable, Ownable {
         whenPaused // ? TODO: to discuss: withdraw allowed when the contract paused only?
     {
         require(
-            tokenAddress.balanceOf(address(this)) > 1,
+            tokens[token].balanceOf(address(this)) > 1,
             "Insufficient token balance"
         );
-        tokenAddress.approve(recipient, amount);
-        tokenAddress.transferFrom(address(this), recipient, amount);
+        tokens[token].approve(recipient, amount);
+        tokens[token].transferFrom(address(this), recipient, amount);
     }
 
     /** ----------------------------------

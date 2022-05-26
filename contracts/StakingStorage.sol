@@ -3,25 +3,29 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Tokens.sol";
 import "./Registry.sol";
+import "./Staking.sol";
 import "./helpers/Util.sol";
+import "./helpers/PermissionControl.sol";
 
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
-contract StakingStorage is Storage {
-    using SafeERC20 for IERC20;
+contract StakingStorage is
+    Tokens,
+    IStaking,
+    PermissionControl,
+    Util,
+    Ownable,
+    Pausable
+{
+    address private _multisig;
     bool private initialized = false;
-
-    Staking public manager;
 
     // Inrementing stake Id used to record history
     mapping(address => uint16) public stakeIds;
@@ -29,44 +33,40 @@ contract StakingStorage is Storage {
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @param _multisig Multisig address as the contract owner
-     * @param _storage Storage contract address
+     * @param multisig Multisig address as the contract owner
      */
-    constructor(address _multisig, IERC20 _storage) {
-        if (address(_multisig) == address(0)) {
-            revert WrongAddress(_multisig, "Invalid Multisig address");
+    constructor(address multisig) {
+        if (address(multisig) == address(0)) {
+            revert WrongAddress(multisig, "Invalid Multisig address");
         }
-        if (address(_storage) == address(0)) {
-            revert WrongAddress(_registry, "Invalid StakingStorage address");
-        }
-
-        stakingStorage = _registry.stakingStorageContract;
+        _multisig = multisig;
         _pause();
-        _transferOwnership(multisig);
     }
 
     /**
-     * @param _registry Registry contract address
-     * @param _storage Staking Storage contract address
+     * @param registry Registry contract address
+     * @param staking Staking contract address
      */
-    function init(Registry _registry, IERC20 _storage) external onlyOwner {
-        if (address(_registry) == address(0)) {
-            revert WrongAddress(_registry, "Invalid Registry address");
+    function init(address registry, address staking) external onlyOwner {
+        require(
+            initialized == false,
+            "It's too late. The contract has already been initialized."
+        );
+        if (!_isContract(registry)) {
+            revert WrongAddress(registry, "Invalid Registry address");
         }
-        if (address(_storage) == address(0)) {
-            revert WrongAddress(_registry, "Invalid StakingStorage address");
+        if (!_isContract(staking)) {
+            revert WrongAddress(staking, "Invalid Staking address");
         }
 
-        stakingStorage = _registry.stakingStorageContract;
+        _setupRole(REGISTRY_ROLE, registry);
+        _setupRole(MANAGER_ROLE, staking);
         _unpause();
-        _transferOwnership(multisig);
+        _transferOwnership(_multisig);
+
         initialized = true;
     }
 
-    /** ----------------------------------
-     * ! Only owner functions
-     * ----------------------------------- */
-
     /**
      * @notice
      * @notice
@@ -75,33 +75,16 @@ contract StakingStorage is Storage {
      *
      * @dev
      *
-     * @param
+     * @param token - address of token to stake
+     * @param wallet - user address
+     * @param amount - amount of tokens to stake
+     * @return stakeID
      */
     function updateHistory(
-        address token,
+        Token token,
         address wallet,
-        uint256 _amount
-    ) public onlyManager {}
-
-    /** ----------------------------------
-     * ! CRUD functions
-     * ----------------------------------- */
-
-    /**
-     * @notice
-     * @notice
-     * @notice
-     * @notice
-     *
-     * @dev
-     *
-     * @param _token - which token to stake
-     * @param _wallet - user address
-     * @param _amount - amount of tokens to stake
-     */
-    function updateHistory(
-        address _token,
-        address _wallet,
-        uint256 _amount
-    ) public onlyManager {}
+        uint256 amount
+    ) public onlyManager returns (uint256) {
+        return 123;
+    }
 }

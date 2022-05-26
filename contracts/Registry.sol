@@ -8,13 +8,15 @@ import "./Staking.sol";
 import "./StakingStorage.sol";
 import "./Converter.sol";
 import "./ConverterStorage.sol";
+import "./helpers/PermissionControl.sol";
+import "./helpers/Util.sol";
 
 /**
  * @dev ASM Genome Mining - Registry contract
  * @notice We use this contract to manage contracts addresses
  * @notice when we need to update some of them.
  */
-contract Registry is Ownable {
+contract Registry is Util, Ownable, PermissionControl {
     address public multisig;
 
     Registry public registryContract;
@@ -38,25 +40,25 @@ contract Registry is Ownable {
             address(this)
         );
 
-        if (!_isContract(_multisig)) {
+        if (address(_multisig) == address(0)) {
             revert WrongAddress(_multisig, "Wrong multisig address");
         }
-        if (!_isContract(_stakingLogic)) {
+        if (address(_stakingLogic) == address(0)) {
             revert WrongAddress(_stakingLogic, "Wrong staking logic address");
         }
-        if (!_isContract(_stakingStorage)) {
+        if (address(_stakingStorage) == address(0)) {
             revert WrongAddress(
                 _stakingStorage,
                 "Wrong staking storage address"
             );
         }
-        if (!_isContract(_converterLogic)) {
+        if (address(_converterLogic) == address(0)) {
             revert WrongAddress(
                 _converterLogic,
                 "Wrong converter logic address"
             );
         }
-        if (!_isContract(_converterStorage)) {
+        if (address(_converterStorage) == address(0)) {
             revert WrongAddress(
                 _converterStorage,
                 "Wrong converter storage address"
@@ -81,7 +83,7 @@ contract Registry is Ownable {
 
         if (address(_stakingStorage) != address(0)) {
             stakingStorageContract = StakingStorage(_stakingStorage);
-            stakingLogicContract.init(address(this), _storage);
+            // stakingLogicContract.init(address(this), _stakingStorage);
         }
 
         if (address(_converterLogic) != address(0)) {

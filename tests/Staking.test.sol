@@ -3,9 +3,9 @@
 pragma solidity ^0.8.6;
 pragma solidity >=0.5.16;
 
-import "../contracts/StakingTestHelper.sol";
+import "../contracts/TestHelpers/StakingTestHelper.sol";
 import "../contracts/Staking.sol";
-import "./../contracts/ITime.sol";
+import "../contracts/helpers/IStaking.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -14,7 +14,7 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM ASTO Time contract
  */
-contract StakingTestContract is DSTest, ITime {
+contract StakingTestContract is DSTest, IStaking {
     StakingTestHelper tc;
 
     // Cheat codes are state changing methods called from the address:
@@ -36,7 +36,7 @@ contract StakingTestContract is DSTest, ITime {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
-        tc = new StakingTestHelper(address(ownerAddress), token);
+        tc = new StakingTestHelper(address(ownerAddress));
 
         setupContract(); // general
         setupWallets(); // balances
@@ -45,7 +45,7 @@ contract StakingTestContract is DSTest, ITime {
 
     function setupContract() internal {
         // ...
-        vm.prank(ownerAddress);
+        // vm.prank(ownerAddress);
         tc.unpause();
     }
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.6;
-
-import "./StakingStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../StakingStorage.sol";
+import "../helpers/IStaking.sol";
 
 /**
  * @dev ASM LP Time test helper + SETTERS for testing
@@ -13,9 +14,7 @@ contract StakingStorageTestHelper is StakingStorage {
     /** ----------------------------------
      * ! Variables setters
      * ----------------------------------- */
-    constructor(address multisig, IERC20 _astoTokenAddress)
-        StakingStorage(multisig, _astoTokenAddress)
-    {}
+    constructor(address multisig) StakingStorage(multisig) {}
 
     function pause() public onlyOwner {
         _unpause();

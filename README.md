@@ -17,7 +17,8 @@ Prerequisites:
 3. Staking.sol, Converter.sol
 4. Registry.sol
 5. Staking.sol: `init(registryAddress, stakingStorageAddress)`
-6.
+6. Converter.sol: `init(registryAddress, converterStorageAddress)`
+7.
 
 to be continue...
 

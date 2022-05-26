@@ -8,11 +8,13 @@ pragma solidity ^0.8.6;
 contract Util {
     error WrongAddress(address addr, string errMsg);
 
+    /**
+     * @dev Attention!
+     * @dev if _isContract() called from the constructor,
+     * @dev addr.code.length will be equal to 0, and
+     * @dev this function will return false.
+     */
     function _isContract(address addr) internal view returns (bool) {
-        uint256 size;
-        assembly {
-            size := extcodesize(addr)
-        }
-        return size > 0;
+        return addr.code.length > 0;
     }
 }
