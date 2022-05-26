@@ -26,20 +26,20 @@ contract PermissionControl is AccessControl {
      * @dev Check if `_regitry` has a REGISTRY_ROLE role.
      */
     function isRegistry(address _registry) public returns (bool) {
-        return hasRole(_registry, REGISTRY_ROLE);
+        return hasRole(REGISTRY_ROLE, _registry);
     }
 
     /**
      * @dev Check if `_manager` has a MANAGER_ROLE role.
      */
     function isManager(address _manager) public returns (bool) {
-        return hasRole(_manager, MANAGER_ROLE);
+        return hasRole(MANAGER_ROLE, _manager);
     }
 
     /**
      * @dev Check if `_converter` has a CONVERTER_ROLE role.
      */
     function isConverter(address _converter) public returns (bool) {
-        return hasRole(_converter, CONVERTER_ROLE);
+        return hasRole(CONVERTER_ROLE, _converter);
     }
 }
