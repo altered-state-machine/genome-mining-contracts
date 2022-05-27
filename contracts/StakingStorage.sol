@@ -89,7 +89,7 @@ contract StakingStorage is
         Token token,
         address addr,
         uint256 amount
-    ) public onlyManager returns (uint256) {
+    ) public onlyRole(MANAGER_ROLE) returns (uint256) {
         if (address(addr) == address(0))
             revert WrongAddress(addr, "Wallet is missed");
 
