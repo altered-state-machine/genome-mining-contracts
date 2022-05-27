@@ -2,20 +2,18 @@
 
 pragma solidity ^0.8.6;
 
-import "./StakingStorage.sol";
+import "../Staking.sol";
 
 /**
- * @dev ASM LP Time test helper + SETTERS for testing
+ * @dev ASM ASTO Time test helper + SETTERS for testing
  */
-contract StakingStorageTestHelper is StakingStorage {
+contract StakingTestHelper is Staking {
     uint256 public currentTimestamp;
 
     /** ----------------------------------
      * ! Variables setters
      * ----------------------------------- */
-    constructor(address multisig, IERC20 _astoTokenAddress)
-        StakingStorage(multisig, _astoTokenAddress)
-    {}
+    constructor(address multisig) Staking(multisig) {}
 
     function pause() public onlyOwner {
         _unpause();

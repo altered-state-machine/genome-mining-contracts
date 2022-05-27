@@ -2,45 +2,73 @@
 
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./ITime.sol";
-import "./TimeConstants.sol";
+import "./helpers/IStaking.sol";
+import "./helpers/TimeConstants.sol";
+import "./helpers/Tokens.sol";
+import "./Registry.sol";
+import "./helpers/Util.sol";
+import "./StakingStorage.sol";
+import "./helpers/PermissionControl.sol";
 
 /**
- * @dev ASM Genome Mining - ASTO Time contract
+ * @dev ASM Genome Mining - Staking Logic contract
  */
-contract Staking is ITime, TimeConstants, Pausable, Ownable {
-    using SafeERC20 for IERC20;
+contract Staking is
+    IStaking,
+    Tokens,
+    TimeConstants,
+    Util,
+    PermissionControl,
+    Pausable,
+    Ownable
+{
+    bool private initialized = false;
+    address private _multisig;
 
-    IERC20 public immutable tokenAddress;
     // Inrementing stake Id used to record history
     mapping(address => uint16) public stakeIds;
+    // Incremented total stakes counter, pointing to the address of who staked
+    mapping(uint16 => address) public allStakeIds;
     // Store stake history per each address keyed by stake Id
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
     /**
-     * @notice Initialize the contract
      * @param multisig Multisig address as the contract owner
-     * @param _tokenAddress $ASTO contract address
      */
-    constructor(address multisig, IERC20 _tokenAddress) {
-        require(address(multisig) != address(0), "invalid multisig address");
-        require(
-            address(_tokenAddress) != address(0),
-            "invalid contract address"
-        );
-
-        // mainnet: 0x823556202e86763853b40e9cDE725f412e294689
-        // rinkeby: ...
-        tokenAddress = _tokenAddress;
+    constructor(address multisig) {
+        if (address(multisig) == address(0)) {
+            revert WrongAddress(multisig, "Invalid Multisig address");
+        }
+        _multisig = multisig;
         _pause();
-        _transferOwnership(multisig);
+    }
+
+    /**
+     * @param registry Registry contract address
+     * @param stakingStorage Staking Storage contract address
+     */
+    function init(address registry, address stakingStorage) external onlyOwner {
+        require(
+            initialized == false,
+            "It's too late. The contract has already been initialized."
+        );
+        if (!_isContract(registry)) {
+            revert WrongAddress(registry, "Invalid Registry address");
+        }
+        if (!_isContract(stakingStorage)) {
+            revert WrongAddress(
+                stakingStorage,
+                "Invalid Staking Storage address"
+            );
+        }
+
+        _setupRole(REGISTRY_ROLE, registry);
+        _unpause();
+        _transferOwnership(_multisig);
+
+        initialized = true;
     }
 
     /** ----------------------------------
@@ -52,17 +80,21 @@ contract Staking is ITime, TimeConstants, Pausable, Ownable {
      * @param recipient recipient of the transfer
      * @param amount Token amount to withdraw
      */
-    function withdraw(address recipient, uint256 amount)
+    function withdraw(
+        Token token,
+        address recipient,
+        uint256 amount
+    )
         external
         onlyOwner
         whenPaused // ? TODO: to discuss: withdraw allowed when the contract paused only?
     {
         require(
-            tokenAddress.balanceOf(address(this)) > 1,
+            tokens[token].balanceOf(address(this)) > 1,
             "Insufficient token balance"
         );
-        tokenAddress.approve(recipient, amount);
-        tokenAddress.transferFrom(address(this), recipient, amount);
+        tokens[token].approve(recipient, amount);
+        tokens[token].transferFrom(address(this), recipient, amount);
     }
 
     /** ----------------------------------
@@ -79,7 +111,7 @@ contract Staking is ITime, TimeConstants, Pausable, Ownable {
      *
      * @param _amount - amount of tokens to stake
      */
-    function stake(uint256 _amount) public {
+    function stake(Token token, uint256 _amount) public {
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
@@ -89,8 +121,9 @@ contract Staking is ITime, TimeConstants, Pausable, Ownable {
 
         stakeIds[msg.sender] = nextStakeId;
         stakeHistory[msg.sender][nextStakeId] = Stake({
+            token: token,
             amount: nextStakeBalance,
-            time: block.timestamp
+            time: uint128(block.timestamp)
         });
         // _beforeTokenTransfer(...);
         // transfer tokens from sender to contract
@@ -105,8 +138,7 @@ contract Staking is ITime, TimeConstants, Pausable, Ownable {
      *
      * @param _amount - list of existing stake IDs belonging to the caller (msg.Sender)
      */
-
-    function unstake(uint256 _amount) public {
+    function unstake(Token token, uint256 _amount) public {
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
@@ -118,8 +150,9 @@ contract Staking is ITime, TimeConstants, Pausable, Ownable {
 
         stakeIds[msg.sender] = nextStakeId;
         stakeHistory[msg.sender][nextStakeId] = Stake({
+            token: token,
             amount: nextStakeBalance,
-            time: block.timestamp
+            time: uint128(block.timestamp)
         });
         // _beforeTokenTransfer(...);
         // transfer tokens from contract to sender

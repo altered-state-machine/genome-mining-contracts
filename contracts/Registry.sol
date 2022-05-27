@@ -8,23 +8,15 @@ import "./Staking.sol";
 import "./StakingStorage.sol";
 import "./Converter.sol";
 import "./ConverterStorage.sol";
-
-error WrongAddress(address addr, string errMsg);
+import "./helpers/PermissionControl.sol";
+import "./helpers/Util.sol";
 
 /**
- * @dev ASM Genome Mining - Tokens
- * TOKENS:
- * ------ ASTO ------
- * mainnet: 0x823556202e86763853b40e9cDE725f412e294689
- * rinkeby: ...
- * ------ LBA LP ------
- * mainnet: ..
- * rinkeby: ...
- * ------ LP ------
- * mainnet: ..
- * rinkeby: ...
+ * @dev ASM Genome Mining - Registry contract
+ * @notice We use this contract to manage contracts addresses
+ * @notice when we need to update some of them.
  */
-contract Registry is Ownable {
+contract Registry is Util, Ownable, PermissionControl {
     address public multisig;
 
     Registry public registryContract;
@@ -32,10 +24,6 @@ contract Registry is Ownable {
     StakingStorage public stakingStorageContract;
     Converter public converterLogicContract;
     ConverterStorage public converterStorageContract;
-
-    IERC20 immutable asto = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lba = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 immutable lp = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
 
     constructor(
         address _multisig,
@@ -95,6 +83,7 @@ contract Registry is Ownable {
 
         if (address(_stakingStorage) != address(0)) {
             stakingStorageContract = StakingStorage(_stakingStorage);
+            // stakingLogicContract.init(address(this), _stakingStorage);
         }
 
         if (address(_converterLogic) != address(0)) {
