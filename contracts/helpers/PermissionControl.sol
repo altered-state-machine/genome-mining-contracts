@@ -60,20 +60,4 @@ contract PermissionControl is AccessControl {
     {
         _updateRole(CONVERTER_ROLE, _converter);
     }
-
-    modifier onlyManager() {
-        require(
-            hasRole(MANAGER_ROLE, msg.sender),
-            "Only Manager can update data."
-        );
-        _;
-    }
-
-    modifier onlyConverter() {
-        require(
-            hasRole(CONVERTER_ROLE, msg.sender),
-            "Only Converter allowed to do that."
-        );
-        _;
-    }
 }
