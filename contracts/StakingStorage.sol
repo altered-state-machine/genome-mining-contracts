@@ -27,7 +27,10 @@ contract StakingStorage is
     address private _multisig;
     bool private initialized = false;
 
-    // Inrementing stake Id used to record history
+    uint16 private _totalStakesCounter;
+    // Incremented total stakes counter, pointing to the address of who staked
+    mapping(uint16 => address) public allStakeIds; // _totalStakesCounter => user address
+    // Incrementing stake Id used to record history
     mapping(address => uint16) public stakeIds;
     // Store stake history per each address keyed by stake Id
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
@@ -59,7 +62,9 @@ contract StakingStorage is
             revert WrongAddress(staking, "Invalid Staking address");
         }
 
+        // we need Registry to allow it to change a Manager
         _setupRole(REGISTRY_ROLE, registry);
+        // we allow Manager to save into the storage
         _setupRole(MANAGER_ROLE, staking);
         _unpause();
         _transferOwnership(_multisig);
@@ -68,23 +73,34 @@ contract StakingStorage is
     }
 
     /**
-     * @notice
-     * @notice
+     * @notice Saving stakes into storage.
+     * @notice Function can be called only manager
      * @notice
      * @notice
      *
      * @dev
      *
      * @param token - address of token to stake
-     * @param wallet - user address
+     * @param addr - user address
      * @param amount - amount of tokens to stake
      * @return stakeID
      */
     function updateHistory(
         Token token,
-        address wallet,
+        address addr,
         uint256 amount
     ) public onlyManager returns (uint256) {
-        return 123;
+        if (address(addr) == address(0))
+            revert WrongAddress(addr, "Wallet is missed");
+
+        if (amount <= 0) revert WrongParameter("Amount should be > 0");
+
+        allStakeIds[++_totalStakesCounter] = addr; // incrementing total stakes counter
+
+        uint128 time = uint128(block.timestamp); // not more that 1 stake per second
+        Stake memory newStake = Stake(token, time, amount);
+        uint16 userStakeId = ++stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
+        stakeHistory[addr][userStakeId] = newStake;
+        return userStakeId;
     }
 }

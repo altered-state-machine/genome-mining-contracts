@@ -3,18 +3,13 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./ITokens.sol";
 
 /**
  * @dev ASM Genome Mining - Tokens
  * list of tokens we use
  */
-contract Tokens {
-    enum Token {
-        ASTO,
-        LBA,
-        LP
-    }
-
+contract Tokens is ITokens {
     IERC20 immutable ASTO_TOKEN =
         IERC20(0x823556202e86763853b40e9cDE725f412e294689);
     IERC20 immutable LBA_TOKEN =

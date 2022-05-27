@@ -20,9 +20,9 @@ import "forge-std/Vm.sol";
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
 contract StakingStorageTestContract is DSTest, IStaking, Tokens {
-    StakingStorageTestHelper c_; // Staking Storage - contract under test
-    Staking manager;
-    Registry registry;
+    StakingStorageTestHelper t_; // Staking Storage - contract under test
+    Staking manager_;
+    Registry registry_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -43,19 +43,20 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
     function setUp() public {
         setupContracts();
         topupWallets();
-        c_.init(address(registry), address(manager));
     }
 
     function setupContracts() internal {
-        c_ = new StakingStorageTestHelper(multisig);
-        manager = new Staking(multisig);
-        registry = new Registry(
+        t_ = new StakingStorageTestHelper(multisig);
+        // console.log("owner:", t_.owner(), " | this contract:", address(this));
+        manager_ = new Staking(multisig);
+        registry_ = new Registry(
             address(multisig),
-            address(manager),
+            address(manager_),
             address(this),
             someone,
             someone
         );
+        t_.init(address(registry_), address(manager_));
     }
 
     function topupWallets() internal {
@@ -77,12 +78,13 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      * @notice   AND: amount is not greater than a balance
      * @notice  THEN: should return stakeID
      */
-    function testUpdateHistory() public skip(true) {
-        vm.prank(address(manager));
-        uint256 stakeID_0 = c_.updateHistory(Token.ASTO, deployer, 1);
-        assert(stakeID_0 == 0);
-        uint256 stakeID_1 = c_.updateHistory(Token.ASTO, deployer, 1);
-        assert(stakeID_1 == 1);
+    function testUpdateHistory() public skip(false) {
+        uint256 stakeId;
+        vm.startPrank(address(manager_));
+        stakeId = t_.updateHistory(Token.ASTO, deployer, 1);
+        assert(stakeId == 1);
+        stakeId = t_.updateHistory(Token.ASTO, deployer, 1);
+        assert(stakeId == 2);
     }
 
     /**
@@ -92,8 +94,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      * @notice  THEN: should revert with message "" // TODO add message
      */
     function testFailUpdateHistory_wrong_token() public skipFailing(false) {
-        vm.prank(address(manager));
-        uint256 stakeID = c_.updateHistory(Token(uint8(5)), deployer, 1); // enum has 3 entries (0-2)
+        vm.prank(address(manager_));
+        t_.updateHistory(Token(uint8(5)), deployer, 1); // enum has 3 entries (0-2)
     }
 
     /**
@@ -102,9 +104,9 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      * @notice   AND: amount is not greater than a balance
      * @notice  THEN: should revert with message "" // TODO add message
      */
-    function testFailUpdateHistory_wrong_amount() public skipFailing(true) {
-        vm.prank(address(manager));
-        uint256 stakeID = c_.updateHistory(Token.ASTO, deployer, 0);
+    function testFailUpdateHistory_wrong_amount() public skipFailing(false) {
+        vm.prank(address(manager_));
+        t_.updateHistory(Token.ASTO, deployer, 0);
     }
 
     /**
@@ -117,8 +119,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
         public
         skipFailing(true)
     {
-        vm.prank(address(manager));
-        uint256 stakeID = c_.updateHistory(Token.ASTO, deployer, 1000e18);
+        vm.prank(address(manager_));
+        t_.updateHistory(Token.ASTO, deployer, 1000e18);
     }
 
     /**
@@ -127,9 +129,9 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      * @notice   AND: amount is not greater than a balance
      * @notice  THEN: should revert with message "" // TODO add message
      */
-    function testFailUpdateHistory_wrong_wallet() public skipFailing(true) {
-        vm.prank(address(manager));
-        uint256 stakeID = c_.updateHistory(Token.ASTO, address(0), 1);
+    function testFailUpdateHistory_wrong_wallet() public skipFailing(false) {
+        vm.prank(address(manager_));
+        uint256 stakeID = t_.updateHistory(Token.ASTO, address(0), 1);
     }
 
     /**
@@ -137,8 +139,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      * @notice  WHEN: caller is not a manager
      * @notice  THEN: should revert with message "" // TODO add message
      */
-    function testFailUpdateHistory_not_a_manger() public skipFailing(false) {
-        uint256 stakeID = c_.updateHistory(Token.ASTO, deployer, 10);
+    function testFailUpdateHistory_not_a_manager() public skipFailing(false) {
+        t_.updateHistory(Token.ASTO, deployer, 10);
     }
 
     /** ----------------------------------

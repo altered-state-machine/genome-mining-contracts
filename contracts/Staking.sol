@@ -29,7 +29,8 @@ contract Staking is
 
     // Inrementing stake Id used to record history
     mapping(address => uint16) public stakeIds;
-    mapping(uint256 => uint16) public allStakeIds;
+    // Incremented total stakes counter, pointing to the address of who staked
+    mapping(uint16 => address) public allStakeIds;
     // Store stake history per each address keyed by stake Id
     mapping(address => mapping(uint16 => Stake)) public stakeHistory;
 
@@ -110,7 +111,7 @@ contract Staking is
      *
      * @param _amount - amount of tokens to stake
      */
-    function stake(uint256 _amount) public {
+    function stake(Token token, uint256 _amount) public {
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
@@ -120,8 +121,9 @@ contract Staking is
 
         stakeIds[msg.sender] = nextStakeId;
         stakeHistory[msg.sender][nextStakeId] = Stake({
+            token: token,
             amount: nextStakeBalance,
-            time: block.timestamp
+            time: uint128(block.timestamp)
         });
         // _beforeTokenTransfer(...);
         // transfer tokens from sender to contract
@@ -136,8 +138,7 @@ contract Staking is
      *
      * @param _amount - list of existing stake IDs belonging to the caller (msg.Sender)
      */
-
-    function unstake(uint256 _amount) public {
+    function unstake(Token token, uint256 _amount) public {
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
@@ -149,8 +150,9 @@ contract Staking is
 
         stakeIds[msg.sender] = nextStakeId;
         stakeHistory[msg.sender][nextStakeId] = Stake({
+            token: token,
             amount: nextStakeBalance,
-            time: block.timestamp
+            time: uint128(block.timestamp)
         });
         // _beforeTokenTransfer(...);
         // transfer tokens from contract to sender

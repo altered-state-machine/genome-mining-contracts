@@ -7,6 +7,7 @@ pragma solidity ^0.8.6;
  */
 contract Util {
     error WrongAddress(address addr, string errMsg);
+    error WrongParameter(string errMsg);
 
     /**
      * @dev Attention!
