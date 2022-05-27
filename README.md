@@ -13,12 +13,12 @@ Prerequisites:
 - multisig already created
 
 1. Tokens.sol, TimeConstants.sol
-2. StakingStorage.sol, ConverterStorage.sol
-3. Staking.sol, Converter.sol
-4. Registry.sol
-5. Staking.sol: `init(registryAddress, stakingStorageAddress)`
+2. StakingStorage.sol, ConverterStorage.sol, Staking.sol, Converter.sol
+3. Registry.sol (it will require addresses from 2)
+4. Staking.sol: `init(registryAddress, stakingStorageAddress)`
+5. StakingStorage.sol: `init(registryAddress, stakingAddress)`
 6. Converter.sol: `init(registryAddress, converterStorageAddress)`
-7.
+7. ConverterStorage.sol: `init(registryAddress, converterAddress)`
 
 to be continue...
 
