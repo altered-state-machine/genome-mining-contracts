@@ -18,13 +18,9 @@ Status: <br>
 
 The Owner can set up a new mining period: start, finish, and token multipliers.
 
-### Set token address `setToken()` _onlyOwner_
+### Set storage manager (OZ AccessControl.sol)
 
-The Owner can set/update the address of the token.
-
-### Set storage manager `setManager()` _onlyOwner_
-
-The Owner can set/update the address of the logic contract that is allowed to do CRUD operations.
+The Owner can set/update the address of the logic contract that is allowed to do CRUD operations. We use `OZ's AccessControl`.
 
 ### Update Balance (CRUD operation) `updateBalance()` **_onlyManager_**
 

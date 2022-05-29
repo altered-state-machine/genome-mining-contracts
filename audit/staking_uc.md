@@ -1,4 +1,6 @@
-# Staking contracts use cases
+### Set storage manager (OZ AccessControl.sol)
+
+The Owner can set/update the address of the logic contract that is allowed to do CRUD operations. We use `OZ's AccessControl`.# Staking contracts use cases
 
 Status: <br>
 
@@ -18,13 +20,9 @@ Status: <br>
 
 A Manager (logic contract) can set/update the staking history of specified wallet.
 
-### Set token address `setToken()` _onlyOwner_
+### Set storage manager (OZ AccessControl.sol)
 
-An Owner can set/update the address of the token.
-
-### Set storage manager `setManager()` _onlyOwner_
-
-An Owner can set/update the address of the logic contract that is allowed to do CRUD operations.
+The Owner can set/update the address of the logic contract that is allowed to do CRUD operations. We use `OZ's AccessControl`.
 
 ### Pause (OZ Pausable.sol) `pause()` _onlyOwner_
 
