@@ -27,13 +27,13 @@ contract StakingStorage is
     address private _multisig;
     bool private initialized = false;
 
-    uint16 private _totalStakesCounter;
+    uint256 private _totalCounter;
     // Incremented total stakes counter, pointing to the address of who staked
-    mapping(uint16 => address) public allStakeIds; // _totalStakesCounter => user address
+    mapping(uint256 => address) private _stakes; // _totalStakesCounter => user address
     // Incrementing stake Id used to record history
-    mapping(address => uint16) public stakeIds;
+    mapping(address => uint256) private _stakeIds;
     // Store stake history per each address keyed by stake Id
-    mapping(address => mapping(uint16 => Stake)) public stakeHistory;
+    mapping(address => mapping(uint256 => Stake)) private _stakeHistory;
 
     /**
      * @param multisig Multisig address as the contract owner
@@ -95,12 +95,36 @@ contract StakingStorage is
 
         if (amount <= 0) revert WrongParameter("Amount should be > 0");
 
-        allStakeIds[++_totalStakesCounter] = addr; // incrementing total stakes counter
+        _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 
         uint128 time = uint128(block.timestamp); // not more that 1 stake per second
         Stake memory newStake = Stake(token, time, amount);
-        uint16 userStakeId = ++stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
-        stakeHistory[addr][userStakeId] = newStake;
+        uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
+        _stakeHistory[addr][userStakeId] = newStake;
         return userStakeId;
+    }
+
+    /** ----------------------------------
+     * ! Getters
+     * ----------------------------------- */
+
+    function getTotalStakesCounter() public view returns (uint256) {
+        return _totalCounter;
+    }
+
+    function getStake(address addr, uint256 id)
+        public
+        view
+        returns (Stake memory)
+    {
+        return _stakeHistory[addr][id];
+    }
+
+    function getUserLastStakeId(address addr) public view returns (uint256) {
+        return _stakeIds[addr];
+    }
+
+    function getLastStakeId() public view returns (uint256) {
+        return _stakeIds[_stakes[_totalCounter]];
     }
 }

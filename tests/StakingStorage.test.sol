@@ -131,7 +131,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Tokens {
      */
     function testFailUpdateHistory_wrong_wallet() public skipFailing(false) {
         vm.prank(address(manager_));
-        uint256 stakeID = t_.updateHistory(Token.ASTO, address(0), 1);
+        t_.updateHistory(Token.ASTO, address(0), 1);
     }
 
     /**
