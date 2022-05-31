@@ -52,7 +52,7 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     /**
      * @notice Get user share of the whole energy pool
      *
-     * @periodId - the periodId to calculate
+     * @param periodId - the periodId to calculate
      * @return Share number
      */
     function getPeriodShare(uint256 periodId) public view returns (uint256) {}
@@ -60,8 +60,8 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     /**
      * @notice Transfer energy to `recipient`
      *
-     * @recipient - the contract address to receive the energy
-     * @amount - the amount of energy to transfer
+     * @param recipient - the contract address to receive the energy
+     * @param amount - the amount of energy to transfer
      */
     function useEnergy(address recipient, uint256 amount) external {}
 
@@ -71,7 +71,8 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
 
     /**
      * @param registry Registry contract address
-     * @param staking Staking contract address
+     * @param energyStorage Energy storage contract address
+     * @param stakingStorage Staking storage contract address
      */
     function init(
         address registry,
