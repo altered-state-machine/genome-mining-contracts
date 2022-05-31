@@ -8,7 +8,7 @@ pragma solidity ^0.8.13;
 interface ITokens {
     enum Token {
         ASTO,
-        LBA,
+        // LBA,
         LP
     }
 }

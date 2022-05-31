@@ -7,7 +7,7 @@ import "./Tokens.sol";
 /**
  * @dev ASM Genome Mining - Utility contract
  */
-contract Util is Tokens {
+contract Util {
     error InvalidInput(string errMsg);
     error ContractError(string errMsg);
 

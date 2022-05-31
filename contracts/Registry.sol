@@ -40,6 +40,9 @@ contract Registry is Util, PermissionControl {
         _changeContracts(stakingLogic, stakingStorage, converterLogic, converterStorage, address(this));
         _setupRole(MANAGER_ROLE, multisig);
         _multisig = multisig;
+
+        // staker_.init(multisig, address(registry_), address(storage_));
+        // storage_.init(multisig, address(registry_), address(storage_));
     }
 
     function changeContracts(

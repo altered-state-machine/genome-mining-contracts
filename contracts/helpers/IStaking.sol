@@ -12,7 +12,7 @@ interface IStaking is ITokens {
     event UnStaked(address indexed staker, uint256 timestamp, uint256 amount);
 
     struct Stake {
-        Token token; // uint8 is used for enums, so the whole struct takes 2 uint256 slots
+        uint256 tokenId; // uint8 is used for enums, so the whole struct takes 2 uint256 slots
         uint128 time; // Time for precise calculations
         uint256 amount; // New amount on every new (un)stake
     }

@@ -3,30 +3,44 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./ITokens.sol";
-
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./PermissionControl.sol";
 
 /**
  * @dev ASM Genome Mining - Tokens
  * list of tokens we use
  */
-contract Tokens is ITokens {
+contract Tokens is PermissionControl {
     using SafeERC20 for IERC20;
 
-    IERC20 constant ASTO_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 constant LBA_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 constant LP_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    // 0x823556202e86763853b40e9cDE725f412e294689
 
-    mapping(Token => IERC20) contractOf;
+    mapping(uint256 => IERC20) public tokens;
+    uint256 public totalTokens; // starts with 1
 
-    constructor() {
-        contractOf[Token.ASTO] = ASTO_TOKEN;
-        contractOf[Token.LBA] = LBA_TOKEN;
-        contractOf[Token.LP] = LP_TOKEN;
+    constructor(IERC20 asto, IERC20 lp) {
+        addToken(asto);
+        addToken(lp);
+
+        address deployer = msg.sender;
+        _setupRole(REGISTRY_ROLE, deployer);
+        _setupRole(MANAGER_ROLE, deployer);
     }
 
-    function _isCorrectToken(Token token) internal pure returns (bool) {
-        return uint8(token) <= uint8(type(Token).max);
+    function init(address multisig, address registry) external onlyRole(MANAGER_ROLE) {
+        _updateRole(MANAGER_ROLE, multisig);
+        _updateRole(REGISTRY_ROLE, registry);
+    }
+
+    function _addToken(IERC20 token) internal {
+        tokens[++totalTokens] = token;
+    }
+
+    function addToken(IERC20 token) public onlyRole(MANAGER_ROLE) {
+        _addToken(token);
+    }
+
+    function getTotalTokens() public view returns (uint256) {
+        return totalTokens;
     }
 }

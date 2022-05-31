@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
-import "./helpers/Tokens.sol";
 import "./Registry.sol";
 import "./Staking.sol";
 import "./helpers/Util.sol";
@@ -16,7 +15,7 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
-contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Pausable {
+contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     bool private initialized = false;
 
     uint256 private _totalCounter;
@@ -77,13 +76,13 @@ contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Pausable {
      *
      * @dev
      *
-     * @param token - address of token to stake
+     * @param tokenId - address of token to stake
      * @param addr - user address
      * @param amount - amount of tokens to stake
      * @return stakeID
      */
     function updateHistory(
-        Token token,
+        uint256 tokenId,
         address addr,
         uint256 amount
     ) public onlyRole(STAKER_ROLE) returns (uint256) {
@@ -93,7 +92,7 @@ contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Pausable {
         _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 
         uint128 time = uint128(block.timestamp); // not more that 1 stake per second
-        Stake memory newStake = Stake(token, time, amount);
+        Stake memory newStake = Stake(tokenId, time, amount);
         uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
         _stakeHistory[addr][userStakeId] = newStake;
         return userStakeId;

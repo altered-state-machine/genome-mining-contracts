@@ -17,13 +17,13 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM ASTO Time contract
  */
-contract StakingTestContract is DSTest, IStaking, Tokens, Util {
+contract StakingTestContract is DSTest, IStaking, Util {
     StakingTestHelper staker_;
     StakingStorage storage_;
     Registry registry_;
-    MockedERC20 asto_;
-    MockedERC20 lba_;
-    MockedERC20 lp_;
+    Tokens tokens_;
+    IERC20 asto_;
+    IERC20 lp_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -32,6 +32,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     uint256 amount = 1_234_567_890_000_000_000; // 1.23456789 ASTO
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
+    uint256 astoToken = 1; // tokenId
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
@@ -46,9 +47,17 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
-        setupContracts(); // instantiate GM contracts
         setupTokens(); // mock tokens
+        setupContracts(); // instantiate GM contracts
         setupWallets(); // topup balances for testing
+    }
+
+    function setupTokens() internal {
+        IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance));
+        IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance));
+        tokens_ = new Tokens(asto, lp);
+        asto_ = tokens_.tokens(1);
+        lp_ = tokens_.tokens(2);
     }
 
     function setupContracts() internal {
@@ -61,13 +70,9 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
             address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
         );
-        staker_.init(multisig, address(registry_), address(storage_));
-    }
-
-    function setupTokens() internal {
-        asto_ = new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance);
-        lba_ = new MockedERC20("LBA LP Token", "LBA", address(staker_), initialBalance);
-        lp_ = new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance);
+        tokens_.init(address(multisig), address(registry_));
+        staker_.init(multisig, address(registry_), address(storage_), tokens_);
+        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupWallets() internal {
@@ -75,10 +80,9 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         vm.deal(deployer, 1); // gas spendings
         vm.deal(someone, 1); // gas spendings
 
-        // asto_.mint(address(staker_), initialBalance);
-        asto_.mint(someone, userBalance);
-        lba_.mint(someone, userBalance);
-        lp_.mint(someone, userBalance);
+        // contractOf[asto].mint(address(staker_), initialBalance);
+        // asto_.mint(someone, userBalance);
+        // lp_.mint(someone, userBalance);
     }
 
     /** ----------------------------------
@@ -100,11 +104,9 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         // assert(
         //     keccak256("REGISTRY_ROLE") == bytes32(0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08)
         // );
-        console.log(registry_.getMultisig());
         vm.startPrank(address(multisig));
         registry_.pause();
-        console.log("paused");
-        staker_.withdraw(Token.ASTO, deployer, amount);
+        staker_.withdraw(astoToken, deployer, amount);
         console.log("withdrawn");
         uint256 balanceAfter = asto_.balanceOf(address(this));
         assert(balanceBefore - balanceAfter == amount);
@@ -125,7 +127,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08"
         );
-        staker_.withdraw(Token.ASTO, deployer, amount);
+        staker_.withdraw(astoToken, deployer, amount);
     }
 
     /**
@@ -139,7 +141,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         vm.startPrank(multisig);
         registry_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, INSUFFICIENT_BALANCE));
-        staker_.withdraw(Token.ASTO, deployer, balanceBefore + amount);
+        staker_.withdraw(astoToken, deployer, balanceBefore + amount);
     }
 
     /**
@@ -160,7 +162,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
         require(balanceBefore > 0, "Topup balance to continue testing");
         vm.prank(someone);
-        staker_.withdraw(Token(uint8(5)), deployer, amount);
+        staker_.withdraw(uint256(5), deployer, amount);
     }
 
     /**
@@ -175,7 +177,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         vm.startPrank(multisig);
         registry_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_ADDRESS));
-        staker_.withdraw(Token.ASTO, address(0), amount);
+        staker_.withdraw(astoToken, address(0), amount);
     }
 
     /**
@@ -188,7 +190,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         require(balanceBefore > 0, "Topup balance to continue testing");
         vm.expectRevert("Pausable: not paused");
         vm.startPrank(multisig);
-        staker_.withdraw(Token.ASTO, address(0), amount);
+        staker_.withdraw(astoToken, address(0), amount);
     }
 
     /** ----------------------------------
@@ -208,7 +210,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         uint256 userBalanceBefore = asto_.balanceOf(someone);
 
         vm.startPrank(someone);
-        staker_.stake(Token.ASTO, amount);
+        staker_.stake(astoToken, amount);
 
         console.log("----");
 
@@ -238,7 +240,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     function testStake_insufficient_balance() public skip(true) {
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INSUFFICIENT_BALANCE));
         vm.prank(someone);
-        staker_.stake(Token.ASTO, userBalance + amount);
+        staker_.stake(astoToken, userBalance + amount);
     }
 
     /**
@@ -251,7 +253,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     function testStake_zero_amount() public skip(false) {
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_AMOUNT));
         vm.prank(someone);
-        staker_.stake(Token.ASTO, 0);
+        staker_.stake(astoToken, 0);
     }
 
     /**
@@ -262,12 +264,12 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      */
     function testUnStake_happy_path() public skip(true) {
         vm.startPrank(someone);
-        staker_.stake(Token.ASTO, amount);
+        staker_.stake(astoToken, amount);
 
         uint256 logicBalanceBefore = asto_.balanceOf(address(staker_));
         uint256 userBalanceBefore = asto_.balanceOf(someone);
 
-        staker_.unStake(Token.ASTO, amount);
+        staker_.unStake(astoToken, amount);
 
         uint256 logicBalanceAfter = asto_.balanceOf(address(staker_));
         uint256 userBalanceAfter = asto_.balanceOf(someone);
@@ -292,9 +294,9 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      */
     function testUnStake_insufficient_balance() public skip(true) {
         vm.startPrank(someone);
-        staker_.stake(Token.ASTO, amount);
+        staker_.stake(astoToken, amount);
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INSUFFICIENT_BALANCE));
-        staker_.unStake(Token.ASTO, userBalance + amount + 1);
+        staker_.unStake(astoToken, userBalance + amount + 1);
     }
 
     /**
@@ -304,9 +306,9 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      */
     function testUnStake_no_existing_history() public skip(true) {
         vm.startPrank(someone);
-        staker_.stake(Token.ASTO, amount);
+        staker_.stake(astoToken, amount);
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, NO_STAKES));
-        staker_.unStake(Token.ASTO, 1);
+        staker_.unStake(astoToken, 1);
     }
 
     /**
@@ -319,7 +321,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     function testUnStake_zero_amount() public skip(true) {
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_AMOUNT));
         vm.prank(someone);
-        staker_.unStake(Token.ASTO, 0);
+        staker_.unStake(astoToken, 0);
     }
 
     /**
@@ -328,10 +330,10 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      * @notice  THEN: return how much tokens are locked
      */
     function testGetTotalValueLocked() public skip(true) {
-        uint256 res = staker_.getTotalValueLocked(Token.ASTO);
+        uint256 res = staker_.getTotalValueLocked(astoToken);
         assert(res == 0);
-        staker_.stake(Token.ASTO, 1);
-        res = staker_.getTotalValueLocked(Token.ASTO);
+        staker_.stake(astoToken, 1);
+        res = staker_.getTotalValueLocked(astoToken);
         console.log(res);
         assert(res == 1);
     }
