@@ -53,37 +53,16 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     }
 
     function setupTokens() internal {
-        asto_ = new MockedERC20(
-            "ASTO Token",
-            "ASTO",
-            address(logic_),
-            initialBalance
-        );
-        lba_ = new MockedERC20(
-            "LBA LP Token",
-            "LBA",
-            address(logic_),
-            initialBalance
-        );
-        lp_ = new MockedERC20(
-            "Uniswap LP Token",
-            "LP",
-            address(logic_),
-            initialBalance
-        );
+        asto_ = new MockedERC20("ASTO Token", "ASTO", address(logic_), initialBalance);
+        lba_ = new MockedERC20("LBA LP Token", "LBA", address(logic_), initialBalance);
+        lp_ = new MockedERC20("Uniswap LP Token", "LP", address(logic_), initialBalance);
     }
 
     function setupContract() internal {
         logic_ = new StakingTestHelper(multisig);
         // console.log("owner:", logic_.owner(), " | this contract:", address(this));
         storage_ = new StakingStorage(multisig);
-        registry_ = new Registry(
-            address(multisig),
-            address(this),
-            address(storage_),
-            someone,
-            someone
-        );
+        registry_ = new Registry(address(multisig), address(this), address(storage_), someone, someone);
         logic_.init(address(registry_), address(storage_));
     }
 
@@ -152,12 +131,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     function testWithdraw_insufficient_balance() public skip(true) {
         uint256 balanceBefore = asto_.balanceOf(address(logic_));
         vm.prank(multisig);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Util.WrongParameter.selector,
-                "Insufficient balance"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.WrongParameter.selector, INSUFFICIENT_BALANCE));
         logic_.withdraw(Token.ASTO, deployer, balanceBefore + amount);
     }
 
@@ -193,12 +167,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
         require(balanceBefore > 0, "Topup balance to continue testing");
         vm.startPrank(multisig);
         logic_.pause();
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Util.WrongParameter.selector,
-                "Wrong address"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.WrongParameter.selector, WRONG_ADDRESS));
         logic_.withdraw(Token.ASTO, address(0), amount);
     }
 
@@ -260,13 +229,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      * @notice  THEN: revert with message "Insufficient balance"
      */
     function testStake_insufficient_balance() public skip(true) {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Util.InsufficientBalance.selector,
-                Token.ASTO,
-                "Insufficient balance"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.InsufficientBalance.selector, Token.ASTO, INSUFFICIENT_BALANCE));
         vm.prank(someone);
         logic_.stake(Token.ASTO, userBalance + amount);
     }
@@ -276,12 +239,10 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      * @notice  WHEN: user calls `stake()` function
      * @notice   AND: token is registered
      * @notice   AND: amount was not specified (equal to 0)
-     * @notice  THEN: revert with message "Wrong amount"
+     * @notice  THEN: revert with message WRONG_AMOUNT
      */
     function testStake_zero_amount() public skip(false) {
-        vm.expectRevert(
-            abi.encodeWithSelector(Util.WrongParameter.selector, "Wrong amount")
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.WrongParameter.selector, WRONG_AMOUNT));
         vm.prank(someone);
         logic_.stake(Token.ASTO, 0);
     }
@@ -320,18 +281,12 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     /**
      * @notice GIVEN: user want to unstake some amount
      * @notice  WHEN: user's current stake is less than that amount
-     * @notice  THEN: should revert with "Insufficient stake balance" message
+     * @notice  THEN: should revert with INSUFFICIENT_BALANCE message
      */
     function testUnStake_insufficient_balance() public skip(true) {
         vm.startPrank(someone);
         logic_.stake(Token.ASTO, amount);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Util.InsufficientBalance.selector,
-                Token.ASTO,
-                "Insufficient stake balance"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.InsufficientBalance.selector, Token.ASTO, INSUFFICIENT_BALANCE));
         logic_.unStake(Token.ASTO, userBalance + amount + 1);
     }
 
@@ -343,9 +298,7 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
     function testUnStake_no_existing_history() public skip(true) {
         vm.startPrank(someone);
         logic_.stake(Token.ASTO, amount);
-        vm.expectRevert(
-            abi.encodeWithSelector(Util.NoStakes.selector, someone)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.NoStakes.selector, someone));
         logic_.unStake(Token.ASTO, 1);
     }
 
@@ -354,12 +307,10 @@ contract StakingTestContract is DSTest, IStaking, Tokens, Util {
      * @notice  WHEN: user calls `unStake()` function
      * @notice   AND: token is registered
      * @notice   AND: amount was not specified (equal to 0)
-     * @notice  THEN: revert with message "Wrong amount"
+     * @notice  THEN: revert with message WRONG_AMOUNT
      */
     function testUnStake_zero_amount() public skip(false) {
-        vm.expectRevert(
-            abi.encodeWithSelector(Util.WrongParameter.selector, "Wrong amount")
-        );
+        vm.expectRevert(abi.encodeWithSelector(Util.WrongParameter.selector, WRONG_AMOUNT));
         vm.prank(someone);
         logic_.unStake(Token.ASTO, 0);
     }

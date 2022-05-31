@@ -16,14 +16,7 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
-contract StakingStorage is
-    Tokens,
-    IStaking,
-    PermissionControl,
-    Util,
-    Ownable,
-    Pausable
-{
+contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Ownable, Pausable {
     address private _multisig;
     bool private initialized = false;
 
@@ -40,7 +33,7 @@ contract StakingStorage is
      */
     constructor(address multisig) {
         if (address(multisig) == address(0)) {
-            revert WrongAddress(multisig, "Invalid Multisig address");
+            revert WrongAddress(multisig, INVALID_MULTISIG);
         }
         _multisig = multisig;
         _pause();
@@ -51,15 +44,12 @@ contract StakingStorage is
      * @param staking Staking contract address
      */
     function init(address registry, address staking) external onlyOwner {
-        require(
-            initialized == false,
-            "It's too late. The contract has already been initialized."
-        );
+        require(initialized == false, ALREADY_INITIALIZED);
         if (!_isContract(registry)) {
-            revert WrongAddress(registry, "Invalid Registry address");
+            revert WrongAddress(registry, INVALID_REGISTRY);
         }
         if (!_isContract(staking)) {
-            revert WrongAddress(staking, "Invalid Staking address");
+            revert WrongAddress(staking, INVALID_STAKING_LOGIC);
         }
 
         // we need Registry to allow it to change a Manager
@@ -90,10 +80,8 @@ contract StakingStorage is
         address addr,
         uint256 amount
     ) public onlyRole(MANAGER_ROLE) returns (uint256) {
-        if (address(addr) == address(0))
-            revert WrongAddress(addr, "Wallet is missed");
-
-        if (amount <= 0) revert WrongParameter("Amount should be > 0");
+        if (address(addr) == address(0)) revert WrongAddress(addr, WRONG_ADDRESS);
+        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
 
         _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 
@@ -112,11 +100,7 @@ contract StakingStorage is
         return _totalCounter;
     }
 
-    function getStake(address addr, uint256 id)
-        public
-        view
-        returns (Stake memory)
-    {
+    function getStake(address addr, uint256 id) public view returns (Stake memory) {
         return _stakeHistory[addr][id];
     }
 

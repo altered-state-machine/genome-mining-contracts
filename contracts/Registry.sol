@@ -32,38 +32,13 @@ contract Registry is Util, Ownable, PermissionControl {
         address _converterLogic,
         address _converterStorage
     ) {
-        changeContracts(
-            _stakingLogic,
-            _stakingStorage,
-            _converterLogic,
-            _converterStorage,
-            address(this)
-        );
+        changeContracts(_stakingLogic, _stakingStorage, _converterLogic, _converterStorage, address(this));
 
-        if (address(_multisig) == address(0)) {
-            revert WrongAddress(_multisig, "Wrong multisig address");
-        }
-        if (address(_stakingLogic) == address(0)) {
-            revert WrongAddress(_stakingLogic, "Wrong staking logic address");
-        }
-        if (address(_stakingStorage) == address(0)) {
-            revert WrongAddress(
-                _stakingStorage,
-                "Wrong staking storage address"
-            );
-        }
-        if (address(_converterLogic) == address(0)) {
-            revert WrongAddress(
-                _converterLogic,
-                "Wrong converter logic address"
-            );
-        }
-        if (address(_converterStorage) == address(0)) {
-            revert WrongAddress(
-                _converterStorage,
-                "Wrong converter storage address"
-            );
-        }
+        if (address(_multisig) == address(0)) revert WrongAddress(_multisig, INVALID_MULTISIG);
+        if (address(_stakingLogic) == address(0)) revert WrongAddress(_stakingLogic, INVALID_STAKING_LOGIC);
+        if (address(_stakingStorage) == address(0)) revert WrongAddress(_stakingStorage, INVALID_STAKING_STORAGE);
+        if (address(_converterLogic) == address(0)) revert WrongAddress(_converterLogic, INVALID_CONVERTER_LOGIC);
+        if (address(_converterStorage) == address(0)) revert WrongAddress(_converterStorage, INVALID_CONVERTER_STORAGE);
 
         multisig = _multisig;
         transferOwnership(_multisig);

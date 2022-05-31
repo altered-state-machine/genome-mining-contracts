@@ -16,15 +16,8 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Logic contract
  */
-contract Staking is
-    IStaking,
-    Tokens,
-    TimeConstants,
-    Util,
-    PermissionControl,
-    Pausable,
-    Ownable
-{
+
+contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pausable, Ownable {
     using SafeERC20 for IERC20;
 
     bool private initialized = false;
@@ -36,7 +29,7 @@ contract Staking is
      */
     constructor(address multisig) {
         if (address(multisig) == address(0)) {
-            revert WrongAddress(multisig, "Invalid Multisig address");
+            revert WrongAddress(multisig, INVALID_MULTISIG);
         }
         _multisig = multisig;
         _pause();
@@ -47,19 +40,13 @@ contract Staking is
      * @param stakingStorage Staking Storage contract address
      */
     function init(address registry, address stakingStorage) external onlyOwner {
-        require(
-            initialized == false,
-            "It's too late. The contract has already been initialized."
-        );
-
-        if (!_isContract(registry))
-            revert WrongAddress(registry, "Invalid Registry address");
-
-        if (!_isContract(stakingStorage))
-            revert WrongAddress(
-                stakingStorage,
-                "Invalid Staking Storage address"
-            );
+        require(initialized == false, ALREADY_INITIALIZED);
+        if (!_isContract(registry)) {
+            revert WrongAddress(registry, INVALID_REGISTRY);
+        }
+        if (!_isContract(stakingStorage)) {
+            revert WrongAddress(stakingStorage, INVALID_STAKING_STORAGE);
+        }
 
         storage_ = StakingStorage(stakingStorage);
         _setupRole(REGISTRY_ROLE, registry);
@@ -88,11 +75,9 @@ contract Staking is
         whenPaused // ? TODO: to discuss: withdraw allowed when the contract paused only?
     {
         if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
-        if (address(recipient) == address(0))
-            revert WrongParameter("Wrong address");
+        if (address(recipient) == address(0)) revert WrongParameter(WRONG_ADDRESS);
 
-        if (contractOf[token].balanceOf(address(this)) <= 0)
-            revert WrongParameter("Insufficient balance");
+        if (contractOf[token].balanceOf(address(this)) <= 0) revert WrongParameter(INSUFFICIENT_BALANCE);
 
         contractOf[token].safeTransfer(recipient, amount);
     }
@@ -114,11 +99,10 @@ contract Staking is
      */
     function stake(Token token, uint256 amount) public whenNotPaused {
         if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
-        if (amount <= 0) revert WrongParameter("Wrong amount");
+        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
         address user = msg.sender;
         uint256 userBalance = ASTO_TOKEN.balanceOf(user);
-        if (amount > userBalance)
-            revert InsufficientBalance(token, "Insufficient balance");
+        if (amount > userBalance) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
 
         // _beforeTokenTransfer(...);
 
@@ -139,7 +123,7 @@ contract Staking is
      */
     function unStake(Token token, uint256 amount) public {
         if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
-        if (amount <= 0) revert WrongParameter("Wrong amount");
+        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
 
         address user = msg.sender;
         uint256 id = storage_.getUserLastStakeId(user);
@@ -147,8 +131,7 @@ contract Staking is
         uint256 userBalance = (storage_.getStake(user, id)).amount;
         uint256 newAmount = userBalance - amount;
 
-        if (userBalance >= amount)
-            revert InsufficientBalance(token, "Insufficient stake balance");
+        if (userBalance >= amount) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
 
         storage_.updateHistory(token, user, newAmount);
 
@@ -162,9 +145,5 @@ contract Staking is
      * @param token ASTO/LBA/LP
      * @return amount of tokens staked in the contract, uint256
      */
-    function getTotalValueLocked(Token token)
-        external
-        onlyOwner
-        returns (uint256)
-    {}
+    function getTotalValueLocked(Token token) external onlyOwner returns (uint256) {}
 }
