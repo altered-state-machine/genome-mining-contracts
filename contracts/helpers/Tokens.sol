@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./ITokens.sol";
@@ -14,12 +14,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract Tokens is ITokens {
     using SafeERC20 for IERC20;
 
-    IERC20 constant ASTO_TOKEN =
-        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 constant LBA_TOKEN =
-        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
-    IERC20 constant LP_TOKEN =
-        IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    IERC20 constant ASTO_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    IERC20 constant LBA_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
+    IERC20 constant LP_TOKEN = IERC20(0x823556202e86763853b40e9cDE725f412e294689);
 
     mapping(Token => IERC20) contractOf;
 

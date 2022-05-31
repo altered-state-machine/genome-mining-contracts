@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Staking.sol";
 import "./StakingStorage.sol";
 import "./Converter.sol";
@@ -16,64 +15,96 @@ import "./helpers/Util.sol";
  * @notice We use this contract to manage contracts addresses
  * @notice when we need to update some of them.
  */
-contract Registry is Util, Ownable, PermissionControl {
-    address public multisig;
-
+contract Registry is Util, PermissionControl {
     Registry public registryContract;
     Staking public stakingLogicContract;
     StakingStorage public stakingStorageContract;
     Converter public converterLogicContract;
     ConverterStorage public converterStorageContract;
 
+    address private _multisig;
+
     constructor(
-        address _multisig,
-        address _stakingLogic,
-        address _stakingStorage,
-        address _converterLogic,
-        address _converterStorage
+        address multisig,
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage
     ) {
-        changeContracts(_stakingLogic, _stakingStorage, _converterLogic, _converterStorage, address(this));
+        if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
+        if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
+        if (!_isContract(stakingStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
+        if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        if (!_isContract(converterStorage)) revert InvalidInput(INVALID_CONVERTER_STORAGE);
 
-        if (address(_multisig) == address(0)) revert WrongAddress(_multisig, INVALID_MULTISIG);
-        if (address(_stakingLogic) == address(0)) revert WrongAddress(_stakingLogic, INVALID_STAKING_LOGIC);
-        if (address(_stakingStorage) == address(0)) revert WrongAddress(_stakingStorage, INVALID_STAKING_STORAGE);
-        if (address(_converterLogic) == address(0)) revert WrongAddress(_converterLogic, INVALID_CONVERTER_LOGIC);
-        if (address(_converterStorage) == address(0)) revert WrongAddress(_converterStorage, INVALID_CONVERTER_STORAGE);
-
-        multisig = _multisig;
-        transferOwnership(_multisig);
+        _changeContracts(stakingLogic, stakingStorage, converterLogic, converterStorage, address(this));
+        _setupRole(MANAGER_ROLE, multisig);
+        _multisig = multisig;
     }
 
     function changeContracts(
-        address _stakingLogic,
-        address _stakingStorage,
-        address _converterLogic,
-        address _converterStorage,
-        address _registry
-    ) public onlyOwner {
-        if (address(_stakingLogic) != address(0)) {
-            stakingLogicContract = Staking(_stakingLogic);
-            // StakingStorage.updateManager(_stakingLogic);
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage,
+        address registry
+    ) public onlyRole(MANAGER_ROLE) {
+        _changeContracts(stakingLogic, stakingStorage, converterLogic, converterStorage, registry);
+    }
+
+    function _changeContracts(
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage,
+        address registry
+    ) internal {
+        if (_isContract(stakingLogic)) {
+            stakingLogicContract = Staking(stakingLogic);
+            // StakingStorage.updateManager(stakingLogic);
         }
 
-        if (address(_stakingStorage) != address(0)) {
-            stakingStorageContract = StakingStorage(_stakingStorage);
-            // stakingLogicContract.init(address(this), _stakingStorage);
+        if (_isContract(stakingStorage)) {
+            stakingStorageContract = StakingStorage(stakingStorage);
+            // stakingLogicContract.init(address(this), stakingStorage);
         }
 
-        if (address(_converterLogic) != address(0)) {
-            converterLogicContract = Converter(_converterLogic);
-            // StakingStorage.updateConverter(_converterLogic);
-            // ConverterStorage.updateManager(_converterLogic);
+        if (_isContract(converterLogic)) {
+            converterLogicContract = Converter(converterLogic);
+            // StakingStorage.updateConverter(converterLogic);
+            // ConverterStorage.updateManager(converterLogic);
         }
-        if (address(_converterStorage) != address(0)) {
-            converterStorageContract = ConverterStorage(_converterStorage);
+        if (_isContract(converterStorage)) {
+            converterStorageContract = ConverterStorage(converterStorage);
         }
 
-        if (address(_registry) != address(0)) {
-            registryContract = Registry(_registry);
-            // StakingStorage.updateRegistry(_registry);
-            // ConverterStorage.updateRegistry(_registry);
+        if (_isContract(registry)) {
+            registryContract = Registry(registry);
+            // StakingStorage.updateRegistry(registry);
+            // ConverterStorage.updateRegistry(registry);
         }
+    }
+
+    function setMultisig(address multisig) public onlyRole(MANAGER_ROLE) {
+        _multisig = multisig;
+        _updateRole(MANAGER_ROLE, multisig);
+    }
+
+    function getMultisig() public view returns (address) {
+        return _multisig;
+    }
+
+    function pause() external onlyRole(MANAGER_ROLE) {
+        stakingLogicContract.pause();
+        stakingStorageContract.pause();
+        // converterLogicContract.pause();
+        // converterStorageContract.pause();
+    }
+
+    function unpause() public onlyRole(MANAGER_ROLE) {
+        stakingLogicContract.unpause();
+        stakingStorageContract.unpause();
+        // converterLogicContract.unpause();
+        // converterStorageContract.unpause();
     }
 }

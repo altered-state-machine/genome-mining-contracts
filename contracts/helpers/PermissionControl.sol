@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract PermissionControl is AccessControl {
     bytes32 public constant REGISTRY_ROLE = keccak256("REGISTRY_ROLE");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant STAKER_ROLE = keccak256("STAKER_ROLE");
     bytes32 public constant CONVERTER_ROLE = keccak256("CONVERTER_ROLE");
 
     /**
@@ -18,8 +19,8 @@ contract PermissionControl is AccessControl {
      * Internal function without access restriction.
      */
     function _updateRole(bytes32 role, address _newAddress) internal {
-        _setupRole(role, _newAddress);
         _revokeRole(role, msg.sender);
+        _grantRole(role, _newAddress);
     }
 
     /**
@@ -47,17 +48,11 @@ contract PermissionControl is AccessControl {
         _updateRole(MANAGER_ROLE, _manager);
     }
 
-    function updateRegistry(address _registry)
-        external
-        onlyRole(REGISTRY_ROLE)
-    {
+    function updateRegistry(address _registry) external onlyRole(REGISTRY_ROLE) {
         _updateRole(REGISTRY_ROLE, _registry);
     }
 
-    function updateConverter(address _converter)
-        external
-        onlyRole(REGISTRY_ROLE)
-    {
+    function updateConverter(address _converter) external onlyRole(REGISTRY_ROLE) {
         _updateRole(CONVERTER_ROLE, _converter);
     }
 }

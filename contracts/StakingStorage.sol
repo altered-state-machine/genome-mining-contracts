@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
@@ -16,8 +16,7 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
-contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Ownable, Pausable {
-    address private _multisig;
+contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Pausable {
     bool private initialized = false;
 
     uint256 private _totalCounter;
@@ -29,36 +28,44 @@ contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Ownable, P
     mapping(address => mapping(uint256 => Stake)) private _stakeHistory;
 
     /**
-     * @param multisig Multisig address as the contract owner
+     * @dev 1. Contracts addresses for the roles are not known yet
+     * @dev 2. Do setup before transfer ownership to the DAO's multisig contract
      */
-    constructor(address multisig) {
-        if (address(multisig) == address(0)) {
-            revert WrongAddress(multisig, INVALID_MULTISIG);
-        }
-        _multisig = multisig;
+    constructor() {
+        address deployer = msg.sender;
+        _setupRole(MANAGER_ROLE, deployer);
+        _setupRole(REGISTRY_ROLE, deployer);
+        _setupRole(STAKER_ROLE, deployer);
         _pause();
     }
 
     /**
+     * @dev Setting up persmissions for this contract:
+     * @dev only Staker is allowed to save into this storage
+     * @dev only Registry is allowed to update permissions - to reduce amount of DAO votings
+     * @dev
+     *
+     * @param multisig Multisig address as the contract owner
      * @param registry Registry contract address
-     * @param staking Staking contract address
+     * @param stakingLogic Staking contract address
      */
-    function init(address registry, address staking) external onlyOwner {
+    function init(
+        address multisig,
+        address registry,
+        address stakingLogic
+    ) public onlyRole(MANAGER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
-        if (!_isContract(registry)) {
-            revert WrongAddress(registry, INVALID_REGISTRY);
-        }
-        if (!_isContract(staking)) {
-            revert WrongAddress(staking, INVALID_STAKING_LOGIC);
-        }
 
-        // we need Registry to allow it to change a Manager
-        _setupRole(REGISTRY_ROLE, registry);
-        // we allow Manager to save into the storage
-        _setupRole(MANAGER_ROLE, staking);
+        if (!_isContract(multisig)) revert ContractError(INVALID_MULTISIG);
+        if (!_isContract(registry)) revert ContractError(INVALID_REGISTRY);
+        if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
+
+        _updateRole(MANAGER_ROLE, multisig);
+        _updateRole(REGISTRY_ROLE, registry);
+        _updateRole(STAKER_ROLE, stakingLogic);
+        _grantRole(MANAGER_ROLE, registry);
+
         _unpause();
-        _transferOwnership(_multisig);
-
         initialized = true;
     }
 
@@ -79,9 +86,9 @@ contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Ownable, P
         Token token,
         address addr,
         uint256 amount
-    ) public onlyRole(MANAGER_ROLE) returns (uint256) {
-        if (address(addr) == address(0)) revert WrongAddress(addr, WRONG_ADDRESS);
-        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
+    ) public onlyRole(STAKER_ROLE) returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
 
         _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 
@@ -110,5 +117,17 @@ contract StakingStorage is Tokens, IStaking, PermissionControl, Util, Ownable, P
 
     function getLastStakeId() public view returns (uint256) {
         return _stakeIds[_stakes[_totalCounter]];
+    }
+
+    /** ----------------------------------
+     * ! Controls
+     * ----------------------------------- */
+
+    function pause() external onlyRole(MANAGER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(MANAGER_ROLE) {
+        _unpause();
     }
 }
