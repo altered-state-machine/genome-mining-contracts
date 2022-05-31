@@ -9,6 +9,19 @@ contract Util {
     error WrongAddress(address addr, string errMsg);
     error WrongParameter(string errMsg);
 
+    string constant INVALID_MULTISIG = "Invalid Multisig address";
+    string constant INVALID_REGISTRY = "Invalid Registry address";
+    string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic address";
+    string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage address";
+    string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic address";
+    string constant INVALID_CONVERTER_STORAGE = "Invalid Converter Storage address";
+
+    string constant ALREADY_INITIALIZED = "The contract has already been initialized";
+    string constant INVALID_ = "Invalid address";
+
+    string constant INPUT_INSUFFIENT_BALANCE = "Insufficient token balance";
+    string constant INPUT_INSUFFIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
+
     /**
      * @dev Attention!
      * @dev if _isContract() called from the constructor,

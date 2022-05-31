@@ -15,15 +15,7 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Logic contract
  */
-contract Staking is
-    IStaking,
-    Tokens,
-    TimeConstants,
-    Util,
-    PermissionControl,
-    Pausable,
-    Ownable
-{
+contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pausable, Ownable {
     bool private initialized = false;
     address private _multisig;
 
@@ -39,7 +31,7 @@ contract Staking is
      */
     constructor(address multisig) {
         if (address(multisig) == address(0)) {
-            revert WrongAddress(multisig, "Invalid Multisig address");
+            revert WrongAddress(multisig, INVALID_MULTISIG);
         }
         _multisig = multisig;
         _pause();
@@ -50,18 +42,12 @@ contract Staking is
      * @param stakingStorage Staking Storage contract address
      */
     function init(address registry, address stakingStorage) external onlyOwner {
-        require(
-            initialized == false,
-            "It's too late. The contract has already been initialized."
-        );
+        require(initialized == false, ALREADY_INITIALIZED);
         if (!_isContract(registry)) {
-            revert WrongAddress(registry, "Invalid Registry address");
+            revert WrongAddress(registry, INVALID_REGISTRY);
         }
         if (!_isContract(stakingStorage)) {
-            revert WrongAddress(
-                stakingStorage,
-                "Invalid Staking Storage address"
-            );
+            revert WrongAddress(stakingStorage, INVALID_STAKING_STORAGE);
         }
 
         _setupRole(REGISTRY_ROLE, registry);
@@ -89,10 +75,7 @@ contract Staking is
         onlyOwner
         whenPaused // ? TODO: to discuss: withdraw allowed when the contract paused only?
     {
-        require(
-            tokens[token].balanceOf(address(this)) > 1,
-            "Insufficient token balance"
-        );
+        require(tokens[token].balanceOf(address(this)) > 1, INPUT_INSUFFIENT_BALANCE);
         tokens[token].approve(recipient, amount);
         tokens[token].transferFrom(address(this), recipient, amount);
     }
@@ -115,8 +98,7 @@ contract Staking is
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
-        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId]
-            .amount;
+        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId].amount;
         uint256 nextStakeBalance = currentStakeBalance + _amount;
 
         stakeIds[msg.sender] = nextStakeId;
@@ -142,10 +124,9 @@ contract Staking is
         uint16 currentStakeId = stakeIds[msg.sender];
         uint16 nextStakeId = currentStakeId + 1;
 
-        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId]
-            .amount;
+        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId].amount;
 
-        require(currentStakeBalance >= _amount, "Amount larger than staked");
+        require(currentStakeBalance >= _amount, INPUT_INSUFFIENT_STAKED_AMOUNT);
         uint256 nextStakeBalance = currentStakeBalance - _amount;
 
         stakeIds[msg.sender] = nextStakeId;
