@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/IStaking.sol";
@@ -15,16 +16,13 @@ import "./helpers/PermissionControl.sol";
 /**
  * @dev ASM Genome Mining - Staking Logic contract
  */
+
 contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pausable, Ownable {
+    using SafeERC20 for IERC20;
+
     bool private initialized = false;
     address private _multisig;
-
-    // Inrementing stake Id used to record history
-    mapping(address => uint16) public stakeIds;
-    // Incremented total stakes counter, pointing to the address of who staked
-    mapping(uint16 => address) public allStakeIds;
-    // Store stake history per each address keyed by stake Id
-    mapping(address => mapping(uint16 => Stake)) public stakeHistory;
+    StakingStorage private storage_;
 
     /**
      * @param multisig Multisig address as the contract owner
@@ -50,6 +48,7 @@ contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pa
             revert WrongAddress(stakingStorage, INVALID_STAKING_STORAGE);
         }
 
+        storage_ = StakingStorage(stakingStorage);
         _setupRole(REGISTRY_ROLE, registry);
         _unpause();
         _transferOwnership(_multisig);
@@ -75,13 +74,16 @@ contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pa
         onlyOwner
         whenPaused // ? TODO: to discuss: withdraw allowed when the contract paused only?
     {
-        require(tokens[token].balanceOf(address(this)) > 1, INPUT_INSUFFIENT_BALANCE);
-        tokens[token].approve(recipient, amount);
-        tokens[token].transferFrom(address(this), recipient, amount);
+        if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
+        if (address(recipient) == address(0)) revert WrongParameter(WRONG_ADDRESS);
+
+        if (contractOf[token].balanceOf(address(this)) <= 0) revert WrongParameter(INSUFFICIENT_BALANCE);
+
+        contractOf[token].safeTransfer(recipient, amount);
     }
 
     /** ----------------------------------
-     * ! User functions
+     * ! Business logic
      * ----------------------------------- */
 
     /**
@@ -90,60 +92,58 @@ contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pa
      * @notice what time your tokens are stay staked.
      * @notice You can always unlock your token. See `unstake()`.
      *
-     * @dev Emit `Stake` event when successful, with timestamp, address, amount
+     * @dev Emit `Staked` event when successful, with address, timestamp, amount
      *
-     * @param _amount - amount of tokens to stake
+     * @param token - Which Token to stake
+     * @param amount - amount of tokens to stake
      */
-    function stake(Token token, uint256 _amount) public {
-        uint16 currentStakeId = stakeIds[msg.sender];
-        uint16 nextStakeId = currentStakeId + 1;
+    function stake(Token token, uint256 amount) public whenNotPaused {
+        if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
+        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
+        address user = msg.sender;
+        uint256 userBalance = ASTO_TOKEN.balanceOf(user);
+        if (amount > userBalance) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
 
-        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId].amount;
-        uint256 nextStakeBalance = currentStakeBalance + _amount;
-
-        stakeIds[msg.sender] = nextStakeId;
-        stakeHistory[msg.sender][nextStakeId] = Stake({
-            token: token,
-            amount: nextStakeBalance,
-            time: uint128(block.timestamp)
-        });
         // _beforeTokenTransfer(...);
-        // transfer tokens from sender to contract
-        // emit Stake(walletAddress, timestamp, amount);
+
+        contractOf[token].approve(address(this), amount);
+        contractOf[token].safeTransferFrom(user, address(this), amount);
+        storage_.updateHistory(token, user, amount);
+        emit Staked(user, block.timestamp, amount);
     }
 
     /**
      * @notice
      * @notice
      *
-     * @dev Emit `Unstake` event when successful, with timestamp, address, amount
+     * @dev Emit `UnStaked` event when successful, with address, timestamp, amount
      *
-     * @param _amount - list of existing stake IDs belonging to the caller (msg.Sender)
+     * @param token - Which Token to stake
+     * @param amount - amount of tokens to stake
      */
-    function unstake(Token token, uint256 _amount) public {
-        uint16 currentStakeId = stakeIds[msg.sender];
-        uint16 nextStakeId = currentStakeId + 1;
+    function unStake(Token token, uint256 amount) public {
+        if (!_isCorrectToken(token)) revert WrongToken(uint8(token));
+        if (amount <= 0) revert WrongParameter(WRONG_AMOUNT);
 
-        uint256 currentStakeBalance = stakeHistory[msg.sender][currentStakeId].amount;
+        address user = msg.sender;
+        uint256 id = storage_.getUserLastStakeId(user);
+        if (id == 0) revert NoStakes(user);
+        uint256 userBalance = (storage_.getStake(user, id)).amount;
+        uint256 newAmount = userBalance - amount;
 
-        require(currentStakeBalance >= _amount, INPUT_INSUFFIENT_STAKED_AMOUNT);
-        uint256 nextStakeBalance = currentStakeBalance - _amount;
+        if (userBalance >= amount) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
 
-        stakeIds[msg.sender] = nextStakeId;
-        stakeHistory[msg.sender][nextStakeId] = Stake({
-            token: token,
-            amount: nextStakeBalance,
-            time: uint128(block.timestamp)
-        });
+        storage_.updateHistory(token, user, newAmount);
+
         // _beforeTokenTransfer(...);
-        // transfer tokens from contract to sender
-        // emit Unstake(walletAddress, timestamp, amount);
+        contractOf[token].safeTransfer(user, amount);
+        emit UnStaked(user, block.timestamp, amount);
     }
 
     /**
      * @notice Returns the total amount of tokens staked by all users
-     *
+     * @param token ASTO/LBA/LP
      * @return amount of tokens staked in the contract, uint256
      */
-    function getTotalValueLocked() external onlyOwner returns (uint256) {}
+    function getTotalValueLocked(Token token) external onlyOwner returns (uint256) {}
 }

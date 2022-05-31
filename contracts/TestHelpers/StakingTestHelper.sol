@@ -16,7 +16,7 @@ contract StakingTestHelper is Staking {
     constructor(address multisig) Staking(multisig) {}
 
     function pause() public onlyOwner {
-        _unpause();
+        _pause();
     }
 
     function unpause() public onlyOwner {
