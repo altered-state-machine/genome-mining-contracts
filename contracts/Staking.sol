@@ -131,7 +131,7 @@ contract Staking is IStaking, Tokens, TimeConstants, Util, PermissionControl, Pa
         uint256 userBalance = (storage_.getStake(user, id)).amount;
         uint256 newAmount = userBalance - amount;
 
-        if (userBalance >= amount) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
+        if (amount > userBalance) revert InsufficientBalance(token, INSUFFICIENT_BALANCE);
 
         storage_.updateHistory(token, user, newAmount);
 
