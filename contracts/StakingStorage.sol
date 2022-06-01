@@ -17,7 +17,6 @@ import "./helpers/PermissionControl.sol";
  */
 contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     bool private initialized = false;
-
     uint256 private _totalCounter;
     // Incremented total stakes counter, pointing to the address of who staked
     mapping(uint256 => address) private _stakes; // _totalStakesCounter => user address
@@ -87,7 +86,6 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
         uint256 amount
     ) public onlyRole(STAKER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
 
         _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 

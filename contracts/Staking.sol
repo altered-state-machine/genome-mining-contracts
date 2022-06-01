@@ -26,6 +26,9 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
     mapping(uint256 => IERC20) public tokens; // asto - 1, lp - 2
 
+    // Stores total amount for the token: token => amount
+    mapping(uint256 => uint256) private _totalStakedAmount;
+
     /**
      * @dev 1. Contracts addresses for the roles are not known yet
      * @dev 2. Do setup before transfer ownership to the DAO's multisig contract
@@ -74,32 +77,6 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Only owner functions
-     * ----------------------------------- */
-
-    /**
-     * @notice Withdraw tokens left in the contract to specified address
-     * @param tokenId - ID of token to stake
-     * @param recipient recipient of the transfer
-     * @param amount Token amount to withdraw
-     */
-    function withdraw(
-        uint256 tokenId,
-        address recipient,
-        uint256 amount
-    )
-        public
-        whenPaused // when contract is paused ONLY
-        onlyRole(MANAGER_ROLE)
-    {
-        if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
-        if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (tokens[tokenId].balanceOf(address(this)) <= 0) revert InvalidInput(INSUFFICIENT_BALANCE);
-
-        tokens[tokenId].safeTransfer(recipient, amount);
-    }
-
-    /** ----------------------------------
      * ! Business logic
      * ----------------------------------- */
 
@@ -121,11 +98,11 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         uint256 userBalance = tokens[tokenId].balanceOf(user);
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
-        // _beforeTokenTransfer(...);
-
-        tokens[tokenId].approve(address(this), amount);
         tokens[tokenId].safeTransferFrom(user, address(this), amount);
+
         storage_.updateHistory(tokenId, user, amount);
+        _totalStakedAmount[tokenId] += amount;
+
         emit Staked(user, block.timestamp, amount);
     }
 
@@ -138,7 +115,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param tokenId - ID of token to stake
      * @param amount - amount of tokens to stake
      */
-    function unStake(uint256 tokenId, uint256 amount) external {
+    function unstake(uint256 tokenId, uint256 amount) external {
         if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
 
@@ -146,14 +123,14 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         uint256 id = storage_.getUserLastStakeId(user);
         if (id == 0) revert InvalidInput(NO_STAKES);
         uint256 userBalance = (storage_.getStake(user, id)).amount;
-        uint256 newAmount = userBalance - amount;
-
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
+        uint256 newAmount = userBalance - amount;
         storage_.updateHistory(tokenId, user, newAmount);
+        _totalStakedAmount[tokenId] += amount;
 
-        // _beforeTokenTransfer(...);
         tokens[tokenId].safeTransfer(user, amount);
+
         emit UnStaked(user, block.timestamp, amount);
     }
 
@@ -162,7 +139,9 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param tokenId ASTO/LBA/LP
      * @return amount of tokens staked in the contract, uint256
      */
-    function getTotalValueLocked(uint256 tokenId) external returns (uint256) {}
+    function getTotalValueLocked(uint256 tokenId) external view returns (uint256) {
+        return _totalStakedAmount[tokenId];
+    }
 
     /** ----------------------------------
      * ! Getters
@@ -173,8 +152,30 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Controls
+     * ! Admin functions
      * ----------------------------------- */
+
+    /**
+     * @notice Withdraw tokens left in the contract to specified address
+     * @param tokenId - ID of token to stake
+     * @param recipient recipient of the transfer
+     * @param amount Token amount to withdraw
+     */
+    function withdraw(
+        uint256 tokenId,
+        address recipient,
+        uint256 amount
+    )
+        public
+        whenPaused // when contract is paused ONLY
+        onlyRole(MANAGER_ROLE)
+    {
+        if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
+        if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (tokens[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
+
+        tokens[tokenId].safeTransfer(recipient, amount);
+    }
 
     function pause() external onlyRole(MANAGER_ROLE) {
         _pause();

@@ -62,11 +62,10 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
     function setupContracts() internal {
         staker_ = new StakingTestHelper();
-        staker_ = new StakingTestHelper();
         storage_ = new StakingStorage();
         registry_ = new Registry(
-            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
+            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
@@ -79,14 +78,14 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
     function setupWallets() internal {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
-        vm.deal(deployer, 1); // gas spendings
-        vm.deal(someone, 1); // gas spendings
+        // topping up staking contract
+        asto_.mint(address(staker_), userBalance);
         asto_.mint(someone, userBalance);
-        lp_.mint(someone, userBalance);
+        lp_.mint(address(staker_), userBalance);
     }
 
     /** ----------------------------------
-     * ! Only owner functions
+     * ! Admin functions
      * ----------------------------------- */
 
     /**
@@ -97,16 +96,10 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testWithdraw_happy_path() public skip(false) {
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
-
-        bytes32 managerRoleHash = bytes32(0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08);
-        assert(keccak256("MANAGER_ROLE") == managerRoleHash); // true
-
         vm.startPrank(address(multisig));
         registry_.pause();
-        console.log(address(multisig), address(staker_), address(storage_), address(registry_));
         staker_.withdraw(astoToken, deployer, amount);
-        console.log("withdrawn");
-        uint256 balanceAfter = asto_.balanceOf(address(this));
+        uint256 balanceAfter = asto_.balanceOf(address(staker_));
         assert(balanceBefore - balanceAfter == amount);
     }
 
@@ -118,7 +111,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testWithdraw_not_an_owner() public skip(false) {
         vm.prank(multisig);
-        staker_.pause();
+        registry_.pause();
         vm.prank(someone);
         // 0xa847d497b38b9e11833eac3ea03921b40e6d847c - someone
         // 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08 - MANAGER_ROLE
@@ -134,7 +127,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice   AND: token, address and amount are specified
      * @notice  THEN: reverts with message "insuffucient balance"
      */
-    function testWithdraw_insufficient_balance() public skip(true) {
+    function testWithdraw_insufficient_balance() public skip(false) {
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
         vm.startPrank(multisig);
         registry_.pause();
@@ -156,8 +149,10 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @dev Please double check implementation to be sure,
      * @dev that wrong token is caught and a proper error is returned.
      */
-    function testFailWithdraw_wrong_token() public skipFailing(false) {
-        vm.prank(someone);
+    function testWithdraw_wrong_token() public skip(false) {
+        vm.startPrank(address(multisig));
+        registry_.pause();
+        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_TOKEN));
         staker_.withdraw(uint256(5), deployer, amount);
     }
 
@@ -167,7 +162,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice   AND: address is missed
      * @notice  THEN: reverts with wrong address message
      */
-    function testWithdraw_no_recipient() public skip(true) {
+    function testWithdraw_no_recipient() public skip(false) {
         vm.startPrank(multisig);
         registry_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_ADDRESS));
@@ -185,6 +180,21 @@ contract StakingTestContract is DSTest, IStaking, Util {
         staker_.withdraw(astoToken, address(0), amount);
     }
 
+    /**
+     * @notice GIVEN: an owner of this contract calls this function
+     * @notice  WHEN: the contract is NOT paused
+     * @notice  THEN: reverts with "Pausable: not paused" message
+     */
+    function testAddToken() public skip(true) {
+        uint256 tokensBefore = tokens_.totalTokens();
+        vm.startPrank(multisig);
+        registry_.pause();
+        tokens_.addToken(asto_); // we'll have 2 asto tokens and 1 lp
+        uint256 tokensAfter = tokens_.totalTokens();
+        assert(tokensAfter == tokensBefore + 1);
+        assert(tokensAfter == 3);
+    }
+
     /** ----------------------------------
      * ! Busines logic
      * ----------------------------------- */
@@ -197,14 +207,13 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: transfer that amount to the contract
      * @notice   AND: update stake history of the user
      */
-    function testStake_happy_path() public skip(true) {
+    function testStake_happy_path() public skip(false) {
         uint256 logicBalanceBefore = asto_.balanceOf(address(staker_));
         uint256 userBalanceBefore = asto_.balanceOf(someone);
 
         vm.startPrank(someone);
+        asto_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
-
-        console.log("----");
 
         uint256 logicBalanceAfter = asto_.balanceOf(address(staker_));
         uint256 userBalanceAfter = asto_.balanceOf(someone);
@@ -213,13 +222,12 @@ contract StakingTestContract is DSTest, IStaking, Util {
         uint256 userLastStakeId = storage_.getUserLastStakeId(someone);
         Stake memory newStake = storage_.getStake(someone, userLastStakeId);
 
-        assertEq(lastStakeId, userLastStakeId);
+        assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
         assertEq(counter, 1);
-        assertEq(logicBalanceBefore, initialBalance); // after initial topup (see setup section)
-        assertEq(logicBalanceAfter, logicBalanceBefore + amount);
-        assertEq(userBalanceBefore, userBalance);
-        assertEq(userBalanceAfter, userBalanceBefore - amount);
-        assertEq(newStake.amount, amount);
+        assertEq(logicBalanceAfter, logicBalanceBefore + amount, "logicBalanceAfter == logicBalanceBefore + amount");
+        assertEq(userBalanceBefore, userBalance, "userBalanceBefore == userBalance");
+        assertEq(userBalanceAfter, userBalanceBefore - amount, "userBalanceAfter == userBalanceBefore - amount");
+        assertEq(newStake.amount, amount, "newStake.amount == amount");
     }
 
     /**
@@ -229,7 +237,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice   AND: amount is greater than user's balance
      * @notice  THEN: revert with message "Insufficient balance"
      */
-    function testStake_insufficient_balance() public skip(true) {
+    function testStake_insufficient_balance() public skip(false) {
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INSUFFICIENT_BALANCE));
         vm.prank(someone);
         staker_.stake(astoToken, userBalance + amount);
@@ -250,33 +258,44 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
     /**
      * @notice GIVEN: stake exists
-     * @notice  WHEN: stake owner calls the `unStake()`
+     * @notice  WHEN: stake owner calls the `unstake()`
      * @notice   AND: specifies correct amount (less than a balance) and token
      * @notice  THEN: storage history updated and tokens transfered to user
      */
-    function testUnStake_happy_path() public skip(true) {
+    function testUnstake_happy_path() public skip(false) {
         vm.startPrank(someone);
+        asto_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
-
         uint256 logicBalanceBefore = asto_.balanceOf(address(staker_));
         uint256 userBalanceBefore = asto_.balanceOf(someone);
 
-        staker_.unStake(astoToken, amount);
+        uint256 userLastStakeId = storage_.getUserLastStakeId(someone);
+        Stake memory beforeUnstakeBalance = storage_.getStake(someone, userLastStakeId);
+
+        staker_.unstake(astoToken, amount);
 
         uint256 logicBalanceAfter = asto_.balanceOf(address(staker_));
         uint256 userBalanceAfter = asto_.balanceOf(someone);
         uint256 counter = storage_.getTotalStakesCounter();
-        uint256 lastStakeId = storage_.getUserLastStakeId(someone);
-        uint256 userLastStakeId = storage_.getUserLastStakeId(someone);
-        Stake memory newStake = storage_.getStake(someone, userLastStakeId);
 
-        assertEq(lastStakeId, userLastStakeId);
-        assertEq(counter, 1);
-        assertEq(logicBalanceBefore, initialBalance); // after initial topup (see setup section)
-        assertEq(logicBalanceAfter, logicBalanceBefore - amount);
-        assertEq(userBalanceBefore, userBalance);
-        assertEq(userBalanceAfter, userBalanceBefore + amount);
-        assertEq(newStake.amount, amount);
+        uint256 lastStakeId = storage_.getLastStakeId();
+        userLastStakeId = storage_.getUserLastStakeId(someone);
+        Stake memory afterUnstakeBalance = storage_.getStake(someone, userLastStakeId);
+
+        // contract and user ASTO balances checks
+        assertEq(logicBalanceAfter, logicBalanceBefore - amount, "Contract balance decreased");
+        assertEq(userBalanceBefore, userBalance - amount, "User balance should be decresed after stake");
+        assertEq(userBalanceAfter, userBalance, "User balance should be restored after unstake");
+        assertEq(userBalanceAfter, userBalanceBefore + amount, "User balance = balance before unstake + amount");
+        // user STAKE balance check
+        assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
+        assertEq(counter, 2); // 1 stake + 1 unstake (both updates counter)
+        assertEq(
+            afterUnstakeBalance.amount,
+            beforeUnstakeBalance.amount - amount,
+            "User's stake balance should be decreased by amount"
+        );
+        assertEq(afterUnstakeBalance.amount, 0, "User's stake balance should be 0");
     }
 
     /**
@@ -284,11 +303,12 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  WHEN: user's current stake is less than that amount
      * @notice  THEN: should revert with INSUFFICIENT_BALANCE message
      */
-    function testUnStake_insufficient_balance() public skip(true) {
+    function testUnstake_insufficient_balance() public skip(false) {
         vm.startPrank(someone);
+        asto_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INSUFFICIENT_BALANCE));
-        staker_.unStake(astoToken, userBalance + amount + 1);
+        staker_.unstake(astoToken, userBalance + amount + 1);
     }
 
     /**
@@ -296,24 +316,23 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  WHEN: calls `unstake()`
      * @notice  THEN: reverts with error NoStakes
      */
-    function testUnStake_no_existing_history() public skip(true) {
+    function testUnstake_no_existing_history() public skip(false) {
         vm.startPrank(someone);
-        staker_.stake(astoToken, amount);
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, NO_STAKES));
-        staker_.unStake(astoToken, 1);
+        staker_.unstake(astoToken, 1);
     }
 
     /**
      * @notice GIVEN: token, amount
-     * @notice  WHEN: user calls `unStake()` function
+     * @notice  WHEN: user calls `unstake()` function
      * @notice   AND: token is registered
      * @notice   AND: amount was not specified (equal to 0)
      * @notice  THEN: revert with message WRONG_AMOUNT
      */
-    function testUnStake_zero_amount() public skip(true) {
+    function testUnstake_zero_amount() public skip(false) {
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_AMOUNT));
         vm.prank(someone);
-        staker_.unStake(astoToken, 0);
+        staker_.unstake(astoToken, 0);
     }
 
     /**
@@ -321,12 +340,13 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  WHEN: anyone calls this function
      * @notice  THEN: return how much tokens are locked
      */
-    function testGetTotalValueLocked() public skip(true) {
+    function testGetTotalValueLocked() public skip(false) {
         uint256 res = staker_.getTotalValueLocked(astoToken);
         assert(res == 0);
+        vm.startPrank(someone);
+        asto_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, 1);
         res = staker_.getTotalValueLocked(astoToken);
-        console.log(res);
         assert(res == 1);
     }
 

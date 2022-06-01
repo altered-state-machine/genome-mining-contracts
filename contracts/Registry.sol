@@ -110,7 +110,7 @@ contract Registry is Util, PermissionControl {
 
     function pause() external onlyRole(MANAGER_ROLE) {
         stakingLogicContract.pause();
-        // stakingStorageContract.pause();
+        stakingStorageContract.pause();
         // converterLogicContract.pause();
         // converterStorageContract.pause();
     }
