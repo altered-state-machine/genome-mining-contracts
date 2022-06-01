@@ -20,9 +20,7 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      * @param multisig Multisig address as the contract owner
      */
     constructor(address multisig) {
-        if (address(multisig) == address(0)) {
-            revert WrongAddress(multisig, "Invalid Multisig address");
-        }
+        if (address(multisig) == address(0)) revert ContractError(INVALID_MULTISIG);
         _multisig = multisig;
         _pause();
     }
@@ -80,15 +78,10 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
         address stakingStorage
     ) external onlyOwner {
         require(!initialized, "The contract has already been initialized.");
-        if (!_isContract(registry)) {
-            revert WrongAddress(registry, "Invalid Registry address.");
-        }
-        if (!_isContract(energyStorage)) {
-            revert WrongAddress(energyStorage, "Invalid Energy Storage address,");
-        }
-        if (!_isContract(stakingStorage)) {
-            revert WrongAddress(stakingStorage, "Invalid Staking Storage address,");
-        }
+
+        if (!_isContract(registry)) revert ContractError(INVALID_REGISTRY);
+        if (!_isContract(energyStorage)) revert ContractError(INVALID_CONVERTER_STORAGE);
+        if (!_isContract(stakingStorage)) revert ContractError(INVALID_STAKING_STORAGE);
 
         _setupRole(REGISTRY_ROLE, registry);
         _unpause();

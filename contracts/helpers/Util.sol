@@ -21,6 +21,7 @@ contract Util {
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
     string constant WRONG_TOKEN = "Token not allowed for staking";
+    string constant WRONG_ARGUMENTS = "Arguments are not valid";
     string constant INSUFFICIENT_BALANCE = "Insufficient token balance";
     string constant INSUFFICIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
     string constant NO_STAKES = "No stakes yet";
