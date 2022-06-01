@@ -49,33 +49,31 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
-        deployContracts(); // instantiate GM contracts
         setupTokens(); // mock tokens
-        initContracts(); // instantiate GM contracts
+        setupContracts(); // instantiate GM contracts
         setupWallets(); // topup balances for testing
     }
 
-    function deployContracts() internal {
+    function setupTokens() internal {
+        MockedERC20 asto = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        MockedERC20 lp = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+        tokens_ = new Tokens(asto, lp);
+        asto_ = MockedERC20(address(tokens_.tokens(1)));
+        lp_ = MockedERC20(address(tokens_.tokens(2)));
+    }
+
+    function setupContracts() internal {
         storage_ = new StakingStorageTestHelper();
         staker_ = new Staking();
         registry_ = new Registry(
+            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
             address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
         );
-    }
-
-    function setupTokens() internal {
-        MockedERC20 asto = new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance);
-        MockedERC20 lp = new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance);
-        tokens_ = new Tokens(asto, lp);
-        asto_ = MockedERC20(address(tokens_.tokens(1)));
-        lp_ = MockedERC20(address(tokens_.tokens(2)));
-    }
-
-    function initContracts() internal {
+        tokens_.init(address(multisig), address(registry_));
         staker_.init(multisig, address(registry_), address(storage_), tokens_);
         storage_.init(multisig, address(registry_), address(staker_));
     }

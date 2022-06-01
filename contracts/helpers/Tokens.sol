@@ -30,6 +30,7 @@ contract Tokens is PermissionControl {
     function init(address multisig, address registry) external onlyRole(MANAGER_ROLE) {
         _updateRole(MANAGER_ROLE, multisig);
         _updateRole(REGISTRY_ROLE, registry);
+        _grantRole(MANAGER_ROLE, registry);
     }
 
     function _addToken(IERC20 token) internal {

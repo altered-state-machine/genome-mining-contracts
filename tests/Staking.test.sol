@@ -47,33 +47,31 @@ contract StakingTestContract is DSTest, IStaking, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
-        deployContracts(); // instantiate GM contracts
         setupTokens(); // mock tokens
-        initContracts(); // instantiate GM contracts
+        setupContracts(); // instantiate GM contracts
         setupWallets(); // topup balances for testing
     }
 
-    function deployContracts() internal {
+    function setupTokens() internal {
+        IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance));
+        IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance));
+        tokens_ = new Tokens(asto, lp);
+        asto_ = MockedERC20(address(tokens_.tokens(1)));
+        lp_ = MockedERC20(address(tokens_.tokens(2)));
+    }
+
+    function setupContracts() internal {
+        staker_ = new StakingTestHelper();
         staker_ = new StakingTestHelper();
         storage_ = new StakingStorage();
         registry_ = new Registry(
+            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
             address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
         );
-    }
-
-    function setupTokens() internal {
-        IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance));
-        IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance));
-        tokens_ = new Tokens(asto, lp);
-        asto_ = MockedERC20(address(tokens_.tokens(1)));
-        lp_ = MockedERC20(address(tokens_.tokens(2)));
-    }
-
-    function initContracts() internal {
         tokens_.init(address(multisig), address(registry_));
         staker_.init(multisig, address(registry_), address(storage_), tokens_);
         storage_.init(multisig, address(registry_), address(staker_));
@@ -98,16 +96,14 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: specified amount of specified tokens is transferred to the specified address
      */
     function testWithdraw_happy_path() public skip(false) {
-        console.log(address(multisig), address(staker_), address(storage_), address(registry_));
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
-        assert(
-            keccak256("MANAGER_ROLE") == bytes32(0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08)
-        ); // true
-        // assert(
-        //     keccak256("REGISTRY_ROLE") == bytes32(0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08)
-        // );
+
+        bytes32 managerRoleHash = bytes32(0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08);
+        assert(keccak256("MANAGER_ROLE") == managerRoleHash); // true
+
         vm.startPrank(address(multisig));
         registry_.pause();
+        console.log(address(multisig), address(staker_), address(storage_), address(registry_));
         staker_.withdraw(astoToken, deployer, amount);
         console.log("withdrawn");
         uint256 balanceAfter = asto_.balanceOf(address(this));
@@ -161,8 +157,6 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @dev that wrong token is caught and a proper error is returned.
      */
     function testFailWithdraw_wrong_token() public skipFailing(false) {
-        uint256 balanceBefore = asto_.balanceOf(address(staker_));
-        require(balanceBefore > 0, "Topup balance to continue testing");
         vm.prank(someone);
         staker_.withdraw(uint256(5), deployer, amount);
     }
@@ -173,9 +167,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice   AND: address is missed
      * @notice  THEN: reverts with wrong address message
      */
-    function testWithdraw_no_address() public skip(true) {
-        uint256 balanceBefore = asto_.balanceOf(address(staker_));
-        require(balanceBefore > 0, "Topup balance to continue testing");
+    function testWithdraw_no_recipient() public skip(true) {
         vm.startPrank(multisig);
         registry_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_ADDRESS));
@@ -188,8 +180,6 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: reverts with "Pausable: not paused" message
      */
     function testWithdraw_not_paused() public skip(false) {
-        uint256 balanceBefore = asto_.balanceOf(address(staker_));
-        require(balanceBefore > 0, "Topup balance to continue testing");
         vm.expectRevert("Pausable: not paused");
         vm.startPrank(multisig);
         staker_.withdraw(astoToken, address(0), amount);

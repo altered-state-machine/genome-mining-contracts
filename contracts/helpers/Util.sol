@@ -13,6 +13,7 @@ contract Util {
 
     string constant ALREADY_INITIALIZED = "The contract has already been initialized";
     string constant INVALID_MULTISIG = "Invalid Multisig address";
+    string constant INVALID_TOKENS = "Invalid Tokens contract address";
     string constant INVALID_REGISTRY = "Invalid Registry address";
     string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic address";
     string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage address";

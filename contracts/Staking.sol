@@ -66,8 +66,8 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         }
 
         _updateRole(REGISTRY_ROLE, registry);
-        _grantRole(MANAGER_ROLE, registry);
         _updateRole(MANAGER_ROLE, multisig);
+        _grantRole(MANAGER_ROLE, registry);
 
         _unpause();
         initialized = true;
@@ -182,5 +182,9 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
     function unpause() external onlyRole(MANAGER_ROLE) {
         _unpause();
+    }
+
+    function addToken(IERC20 token) external onlyRole(REGISTRY_ROLE) {
+        tokens[++_totalTokens] = token;
     }
 }
