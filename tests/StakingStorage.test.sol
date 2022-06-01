@@ -49,12 +49,13 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
+        deployContracts(); // instantiate GM contracts
         setupTokens(); // mock tokens
-        setupContracts(); // instantiate GM contracts
+        initContracts(); // instantiate GM contracts
         setupWallets(); // topup balances for testing
     }
 
-    function setupContracts() internal {
+    function deployContracts() internal {
         storage_ = new StakingStorageTestHelper();
         staker_ = new Staking();
         registry_ = new Registry(
@@ -64,16 +65,19 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
             address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
         );
-        staker_.init(multisig, address(registry_), address(storage_), tokens_);
-        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupTokens() internal {
         IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance));
         IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance));
         tokens_ = new Tokens(asto, lp);
-        asto_ = tokens_.tokens(1);
-        lp_ = tokens_.tokens(2);
+        // asto_ = tokens_.tokens(1);
+        // lp_ = tokens_.tokens(2);
+    }
+
+    function initContracts() internal {
+        staker_.init(multisig, address(registry_), address(storage_), tokens_);
+        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupWallets() internal {

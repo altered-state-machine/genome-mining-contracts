@@ -19,8 +19,8 @@ contract Tokens is PermissionControl {
     uint256 public totalTokens; // starts with 1
 
     constructor(IERC20 asto, IERC20 lp) {
-        addToken(asto);
-        addToken(lp);
+        _addToken(asto);
+        _addToken(lp);
 
         address deployer = msg.sender;
         _setupRole(REGISTRY_ROLE, deployer);

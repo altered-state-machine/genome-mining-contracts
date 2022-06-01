@@ -47,9 +47,22 @@ contract StakingTestContract is DSTest, IStaking, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
+        deployContracts(); // instantiate GM contracts
         setupTokens(); // mock tokens
-        setupContracts(); // instantiate GM contracts
+        initContracts(); // instantiate GM contracts
         setupWallets(); // topup balances for testing
+    }
+
+    function deployContracts() internal {
+        staker_ = new StakingTestHelper();
+        storage_ = new StakingStorage();
+        registry_ = new Registry(
+            address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
+            address(staker_), // Staker - the real one
+            address(storage_), // StakingStorage - the real one
+            address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
+            address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
+        );
     }
 
     function setupTokens() internal {
@@ -60,16 +73,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
         lp_ = tokens_.tokens(2);
     }
 
-    function setupContracts() internal {
-        staker_ = new StakingTestHelper();
-        storage_ = new StakingStorage();
-        registry_ = new Registry(
-            address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
-            address(staker_), // Staker - the real one
-            address(storage_), // StakingStorage - the real one
-            address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
-        );
+    function initContracts() internal {
         tokens_.init(address(multisig), address(registry_));
         staker_.init(multisig, address(registry_), address(storage_), tokens_);
         storage_.init(multisig, address(registry_), address(staker_));
