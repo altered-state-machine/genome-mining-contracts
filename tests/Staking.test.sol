@@ -22,8 +22,8 @@ contract StakingTestContract is DSTest, IStaking, Util {
     StakingStorage storage_;
     Registry registry_;
     Tokens tokens_;
-    IERC20 asto_;
-    IERC20 lp_;
+    MockedERC20 asto_;
+    MockedERC20 lp_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -69,8 +69,8 @@ contract StakingTestContract is DSTest, IStaking, Util {
         IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", address(staker_), initialBalance));
         IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", address(staker_), initialBalance));
         tokens_ = new Tokens(asto, lp);
-        asto_ = tokens_.tokens(1);
-        lp_ = tokens_.tokens(2);
+        asto_ = MockedERC20(address(tokens_.tokens(1)));
+        lp_ = MockedERC20(address(tokens_.tokens(2)));
     }
 
     function initContracts() internal {
@@ -83,10 +83,8 @@ contract StakingTestContract is DSTest, IStaking, Util {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
         vm.deal(deployer, 1); // gas spendings
         vm.deal(someone, 1); // gas spendings
-
-        // contractOf[asto].mint(address(staker_), initialBalance);
-        // asto_.mint(someone, userBalance);
-        // lp_.mint(someone, userBalance);
+        asto_.mint(someone, userBalance);
+        lp_.mint(someone, userBalance);
     }
 
     /** ----------------------------------
