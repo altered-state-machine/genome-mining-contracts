@@ -66,8 +66,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         storage_ = new StakingStorageTestHelper();
         staker_ = new Staking();
         registry_ = new Registry(
-            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
+            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
@@ -106,37 +106,6 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     }
 
     /**
-     * @notice GIVEN: Unknow token, a correct wallet, and correct amount
-     * @notice  WHEN: caller is a manager
-     * @notice   AND: amount is not greater than a balance
-     * @notice  THEN: should revert
-     *
-     * @dev Can't properly test it as an error happens here,
-     * @dev rather than in the contract under test,
-     * @dev because of the non-existing conversion (such token doesn't exist)
-     * @dev that's why test called `testFailWithdraw_...` and
-     * @dev a non-specific error is expected.
-     * @dev Please double check implementation to be sure,
-     * @dev that wrong token is caught and a proper error is returned.
-     */
-    function testFailUpdateHistory_wrong_token() public skipFailing(false) {
-        vm.prank(address(staker_));
-        storage_.updateHistory(uint256(5), deployer, 1); // enum has 3 entries (0-2)
-    }
-
-    /**
-     * @notice GIVEN: Unknow token, a correct wallet, and missed amount
-     * @notice  WHEN: caller is a manager
-     * @notice   AND: amount is not greater than a balance
-     * @notice  THEN: should revert with message WRONG_AMOUNT
-     */
-    function testUpdateHistory_wrong_amount() public skipFailing(false) {
-        vm.prank(address(staker_));
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_AMOUNT));
-        storage_.updateHistory(astoToken, deployer, 0);
-    }
-
-    /**
      * @notice GIVEN: Known token, and amount, but wrong/missed wallet
      * @notice  WHEN: caller is a manager
      * @notice   AND: amount is not greater than a balance
@@ -151,7 +120,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     /**
      * @notice GIVEN: all correct params
      * @notice  WHEN: caller is not a manager
-     * @notice  THEN: should revert with message "" // TODO add message
+     * @notice  THEN: should revert with message "AccessControl: account ..."
      */
     function testUpdateHistory_not_a_staker() public skipFailing(false) {
         vm.prank(someone);
