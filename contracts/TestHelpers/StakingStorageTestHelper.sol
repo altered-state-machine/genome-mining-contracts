@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../StakingStorage.sol";
 import "../helpers/IStaking.sol";
@@ -14,13 +14,5 @@ contract StakingStorageTestHelper is StakingStorage {
     /** ----------------------------------
      * ! Variables setters
      * ----------------------------------- */
-    constructor(address multisig) StakingStorage(multisig) {}
-
-    function pause() public onlyOwner {
-        _unpause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
-    }
+    constructor() StakingStorage() {}
 }

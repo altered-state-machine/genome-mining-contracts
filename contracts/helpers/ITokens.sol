@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 /**
  * @dev ASM Genome Mining - Tokens interface
@@ -8,7 +8,7 @@ pragma solidity ^0.8.6;
 interface ITokens {
     enum Token {
         ASTO,
-        LBA,
+        // LBA,
         LP
     }
 }

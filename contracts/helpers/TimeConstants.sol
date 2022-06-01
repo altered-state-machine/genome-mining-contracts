@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 /**
  * @dev ASM Genome Mining - ASTO Time constants we use
@@ -15,6 +15,5 @@ contract TimeConstants {
     uint256 public constant SECONDS_PER_DAY = 86400;
     uint256 public constant SECONDS_PER_WEEK = 604800;
     uint256 public constant DURATION_WEEKS = 40;
-    uint256 public constant DURATION_SECONDS =
-        DURATION_WEEKS * SECONDS_PER_WEEK;
+    uint256 public constant DURATION_SECONDS = DURATION_WEEKS * SECONDS_PER_WEEK;
 }

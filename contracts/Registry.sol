@@ -1,104 +1,129 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Staking.sol";
 import "./StakingStorage.sol";
 import "./Converter.sol";
 import "./ConverterStorage.sol";
 import "./helpers/PermissionControl.sol";
 import "./helpers/Util.sol";
+import "./helpers/Tokens.sol";
 
 /**
  * @dev ASM Genome Mining - Registry contract
  * @notice We use this contract to manage contracts addresses
  * @notice when we need to update some of them.
  */
-contract Registry is Util, Ownable, PermissionControl {
-    address public multisig;
-
+contract Registry is Util, PermissionControl {
     Registry public registryContract;
     Staking public stakingLogicContract;
     StakingStorage public stakingStorageContract;
     Converter public converterLogicContract;
     ConverterStorage public converterStorageContract;
+    Tokens public tokensContract;
+
+    address private _multisig;
 
     constructor(
-        address _multisig,
-        address _stakingLogic,
-        address _stakingStorage,
-        address _converterLogic,
-        address _converterStorage
+        address multisig,
+        address tokens,
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage
     ) {
-        changeContracts(
-            _stakingLogic,
-            _stakingStorage,
-            _converterLogic,
-            _converterStorage,
-            address(this)
-        );
+        if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
+        if (!_isContract(tokens)) revert InvalidInput(INVALID_TOKENS);
+        if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
+        if (!_isContract(stakingStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
+        if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        if (!_isContract(converterStorage)) revert InvalidInput(INVALID_CONVERTER_STORAGE);
 
-        if (address(_multisig) == address(0)) {
-            revert WrongAddress(_multisig, "Wrong multisig address");
-        }
-        if (address(_stakingLogic) == address(0)) {
-            revert WrongAddress(_stakingLogic, "Wrong staking logic address");
-        }
-        if (address(_stakingStorage) == address(0)) {
-            revert WrongAddress(
-                _stakingStorage,
-                "Wrong staking storage address"
-            );
-        }
-        if (address(_converterLogic) == address(0)) {
-            revert WrongAddress(
-                _converterLogic,
-                "Wrong converter logic address"
-            );
-        }
-        if (address(_converterStorage) == address(0)) {
-            revert WrongAddress(
-                _converterStorage,
-                "Wrong converter storage address"
-            );
-        }
+        _changeContracts(tokens, stakingLogic, stakingStorage, converterLogic, converterStorage, address(this));
+        _setupRole(MANAGER_ROLE, multisig);
+        _multisig = multisig;
 
-        multisig = _multisig;
-        transferOwnership(_multisig);
+        // staker_.init(multisig, address(registry_), address(storage_));
+        // storage_.init(multisig, address(registry_), address(storage_));
     }
 
     function changeContracts(
-        address _stakingLogic,
-        address _stakingStorage,
-        address _converterLogic,
-        address _converterStorage,
-        address _registry
-    ) public onlyOwner {
-        if (address(_stakingLogic) != address(0)) {
-            stakingLogicContract = Staking(_stakingLogic);
-            // StakingStorage.updateManager(_stakingLogic);
+        address tokens,
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage,
+        address registry
+    ) public onlyRole(MANAGER_ROLE) {
+        _changeContracts(tokens, stakingLogic, stakingStorage, converterLogic, converterStorage, registry);
+    }
+
+    function _changeContracts(
+        address tokens,
+        address stakingLogic,
+        address stakingStorage,
+        address converterLogic,
+        address converterStorage,
+        address registry
+    ) internal {
+        if (_isContract(tokens)) {
+            tokensContract = Tokens(tokens);
+            // StakingStorage.updateManager(stakingLogic);
         }
 
-        if (address(_stakingStorage) != address(0)) {
-            stakingStorageContract = StakingStorage(_stakingStorage);
-            // stakingLogicContract.init(address(this), _stakingStorage);
+        if (_isContract(stakingLogic)) {
+            stakingLogicContract = Staking(stakingLogic);
+            // StakingStorage.updateManager(stakingLogic);
         }
 
-        if (address(_converterLogic) != address(0)) {
-            converterLogicContract = Converter(_converterLogic);
-            // StakingStorage.updateConverter(_converterLogic);
-            // ConverterStorage.updateManager(_converterLogic);
-        }
-        if (address(_converterStorage) != address(0)) {
-            converterStorageContract = ConverterStorage(_converterStorage);
+        if (_isContract(stakingStorage)) {
+            stakingStorageContract = StakingStorage(stakingStorage);
+            // stakingLogicContract.init(address(this), stakingStorage);
         }
 
-        if (address(_registry) != address(0)) {
-            registryContract = Registry(_registry);
-            // StakingStorage.updateRegistry(_registry);
-            // ConverterStorage.updateRegistry(_registry);
+        if (_isContract(converterLogic)) {
+            converterLogicContract = Converter(converterLogic);
+            // StakingStorage.updateConverter(converterLogic);
+            // ConverterStorage.updateManager(converterLogic);
         }
+        if (_isContract(converterStorage)) {
+            converterStorageContract = ConverterStorage(converterStorage);
+        }
+
+        if (_isContract(registry)) {
+            registryContract = Registry(registry);
+            // StakingStorage.updateRegistry(registry);
+            // ConverterStorage.updateRegistry(registry);
+        }
+    }
+
+    function setManager(address multisig) public onlyRole(MANAGER_ROLE) {
+        _multisig = multisig;
+        _updateRole(MANAGER_ROLE, multisig);
+    }
+
+    function getManager() public view returns (address) {
+        return _multisig;
+    }
+
+    function pause() external onlyRole(MANAGER_ROLE) {
+        stakingLogicContract.pause();
+        // stakingStorageContract.pause();
+        // converterLogicContract.pause();
+        // converterStorageContract.pause();
+    }
+
+    function unpause() public onlyRole(MANAGER_ROLE) {
+        stakingLogicContract.unpause();
+        stakingStorageContract.unpause();
+        // converterLogicContract.unpause();
+        // converterStorageContract.unpause();
+    }
+
+    function addToken(IERC20 token) public onlyRole(MANAGER_ROLE) {
+        tokensContract.addToken(token);
+        stakingLogicContract.addToken(token);
     }
 }

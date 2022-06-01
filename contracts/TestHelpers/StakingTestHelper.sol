@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "../Staking.sol";
 
@@ -13,13 +13,5 @@ contract StakingTestHelper is Staking {
     /** ----------------------------------
      * ! Variables setters
      * ----------------------------------- */
-    constructor(address multisig) Staking(multisig) {}
-
-    function pause() public onlyOwner {
-        _unpause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
-    }
+    constructor() Staking() {}
 }
