@@ -3,11 +3,12 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "../contracts/TestHelpers/StakingTestHelper.sol";
 import "../contracts/Staking.sol";
+import "../contracts/Staking.sol";
+import "../contracts/Controller.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
-import "../contracts/helpers/Tokens.sol";
+
 import "../contracts/mocks/MockedERC20.sol";
 
 import "ds-test/Test.sol";
@@ -18,10 +19,9 @@ import "forge-std/Vm.sol";
  * @dev Tests for the ASM ASTO Time contract
  */
 contract StakingTestContract is DSTest, IStaking, Util {
-    StakingTestHelper staker_;
+    Staking staker_;
     StakingStorage storage_;
-    Registry registry_;
-    Tokens tokens_;
+    Controller controller_;
     MockedERC20 asto_;
     MockedERC20 lp_;
 
@@ -53,27 +53,22 @@ contract StakingTestContract is DSTest, IStaking, Util {
     }
 
     function setupTokens() internal {
-        IERC20 asto = IERC20(new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance));
-        IERC20 lp = IERC20(new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance));
-        tokens_ = new Tokens(asto, lp);
-        asto_ = MockedERC20(address(tokens_.tokens(1)));
-        lp_ = MockedERC20(address(tokens_.tokens(2)));
+        asto_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lp_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupContracts() internal {
-        staker_ = new StakingTestHelper();
+        staker_ = new Staking();
         storage_ = new StakingStorage();
-        registry_ = new Registry(
-            address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
-            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
+        controller_ = new Controller(
+            address(multisig), // Multisig - Controller checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
-            address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
+            address(staker_), // Converter - Controller checks if the address is a contract, so we fake it
+            address(staker_), // ConverterStorage - Controller checks if the address is a contract, so we fake it
+            address(asto_),
+            address(lp_)
         );
-        tokens_.init(address(multisig), address(registry_));
-        staker_.init(multisig, address(registry_), address(storage_), tokens_);
-        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupWallets() internal {
@@ -97,7 +92,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
     function testWithdraw_happy_path() public skip(false) {
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
         vm.startPrank(address(multisig));
-        registry_.pause();
+        controller_.pause();
         staker_.withdraw(astoToken, deployer, amount);
         uint256 balanceAfter = asto_.balanceOf(address(staker_));
         assert(balanceBefore - balanceAfter == amount);
@@ -111,7 +106,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testWithdraw_not_an_owner() public skip(false) {
         vm.prank(multisig);
-        registry_.pause();
+        controller_.pause();
         vm.prank(someone);
         // 0xa847d497b38b9e11833eac3ea03921b40e6d847c - someone
         // 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08 - MANAGER_ROLE
@@ -130,7 +125,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
     function testWithdraw_insufficient_balance() public skip(false) {
         uint256 balanceBefore = asto_.balanceOf(address(staker_));
         vm.startPrank(multisig);
-        registry_.pause();
+        controller_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, INSUFFICIENT_BALANCE));
         staker_.withdraw(astoToken, deployer, balanceBefore + amount);
     }
@@ -140,18 +135,10 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  WHEN: there are some tokens on the balance of this contract
      * @notice   AND: wrong token is specified
      * @notice  THEN: reverts with wrong token message
-     *
-     * @dev Can't properly test it as an error happens here,
-     * @dev rather than in the contract under test,
-     * @dev because of the non-existing conversion (such token doesn't exist)
-     * @dev that's why test called `testFailWithdraw_...` and
-     * @dev a non-specific error is expected.
-     * @dev Please double check implementation to be sure,
-     * @dev that wrong token is caught and a proper error is returned.
      */
     function testWithdraw_wrong_token() public skip(false) {
         vm.startPrank(address(multisig));
-        registry_.pause();
+        controller_.pause();
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_TOKEN));
         staker_.withdraw(uint256(5), deployer, amount);
     }
@@ -164,7 +151,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testWithdraw_no_recipient() public skip(false) {
         vm.startPrank(multisig);
-        registry_.pause();
+        controller_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, WRONG_ADDRESS));
         staker_.withdraw(astoToken, address(0), amount);
     }
@@ -178,21 +165,6 @@ contract StakingTestContract is DSTest, IStaking, Util {
         vm.expectRevert("Pausable: not paused");
         vm.startPrank(multisig);
         staker_.withdraw(astoToken, address(0), amount);
-    }
-
-    /**
-     * @notice GIVEN: an owner of this contract calls this function
-     * @notice  WHEN: the contract is NOT paused
-     * @notice  THEN: reverts with "Pausable: not paused" message
-     */
-    function testAddToken() public skip(true) {
-        uint256 tokensBefore = tokens_.totalTokens();
-        vm.startPrank(multisig);
-        registry_.pause();
-        tokens_.addToken(asto_); // we'll have 2 asto tokens and 1 lp
-        uint256 tokensAfter = tokens_.totalTokens();
-        assert(tokensAfter == tokensBefore + 1);
-        assert(tokensAfter == 3);
     }
 
     /** ----------------------------------

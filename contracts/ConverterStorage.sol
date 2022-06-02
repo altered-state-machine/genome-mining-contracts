@@ -34,7 +34,7 @@ contract ConverterStorage is TimeConstants, Pausable, Ownable, PermissionControl
             revert InvalidInput(_registry, "Wrong converter contract address");
         }
 
-        _setupRole(REGISTRY_ROLE, _registry);
+        _setupRole(CONTROLLER_ROLE, _registry);
         _setupRole(MANAGER_ROLE, _converterLogic);
         _transferOwnership(_multisig);
     }

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
-import "./Registry.sol";
+import "./Controller.sol";
 import "./Staking.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
@@ -31,8 +31,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      */
     constructor() {
         address deployer = msg.sender;
-        _setupRole(MANAGER_ROLE, deployer);
-        _setupRole(REGISTRY_ROLE, deployer);
+        _setupRole(CONTROLLER_ROLE, deployer);
         _setupRole(STAKER_ROLE, deployer);
         _pause();
     }
@@ -40,57 +39,37 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     /**
      * @dev Setting up persmissions for this contract:
      * @dev only Staker is allowed to save into this storage
-     * @dev only Registry is allowed to update permissions - to reduce amount of DAO votings
+     * @dev only Controller is allowed to update permissions - to reduce amount of DAO votings
      * @dev
      *
-     * @param multisig Multisig address as the contract owner
-     * @param registry Registry contract address
+     * @param controller Controller contract address
      * @param stakingLogic Staking contract address
      */
-    function init(
-        address multisig,
-        address registry,
-        address stakingLogic
-    ) public onlyRole(MANAGER_ROLE) {
+    function init(address controller, address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
 
-        if (!_isContract(multisig)) revert ContractError(INVALID_MULTISIG);
-        if (!_isContract(registry)) revert ContractError(INVALID_REGISTRY);
-        if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
-
-        _updateRole(MANAGER_ROLE, multisig);
-        _updateRole(REGISTRY_ROLE, registry);
+        _updateRole(CONTROLLER_ROLE, controller);
         _updateRole(STAKER_ROLE, stakingLogic);
-        _grantRole(MANAGER_ROLE, registry);
-
         _unpause();
+
         initialized = true;
     }
 
     /**
      * @notice Saving stakes into storage.
      * @notice Function can be called only manager
-     * @notice
-     * @notice
      *
-     * @dev
-     *
-     * @param tokenId - address of token to stake
      * @param addr - user address
      * @param amount - amount of tokens to stake
      * @return stakeID
      */
-    function updateHistory(
-        uint256 tokenId,
-        address addr,
-        uint256 amount
-    ) public onlyRole(STAKER_ROLE) returns (uint256) {
+    function updateHistory(address addr, uint256 amount) public onlyRole(STAKER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
         _stakes[++_totalCounter] = addr; // incrementing total stakes counter
 
         uint128 time = uint128(block.timestamp); // not more that 1 stake per second
-        Stake memory newStake = Stake(tokenId, time, amount);
+        Stake memory newStake = Stake(time, amount);
         uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
         _stakeHistory[addr][userStakeId] = newStake;
         return userStakeId;

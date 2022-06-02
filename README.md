@@ -14,7 +14,7 @@ Prerequisites:
 
 1. Tokens.sol, TimeConstants.sol
 2. StakingStorage.sol, ConverterStorage.sol, Staking.sol, Converter.sol
-3. Registry.sol (it will require addresses from 2)
+3. Controller.sol (it will require addresses from 2)
 4. Staking.sol: `init(registryAddress, stakingStorageAddress)`
 5. StakingStorage.sol: `init(registryAddress, stakingAddress)`
 6. Converter.sol: `init(registryAddress, converterStorageAddress)`
@@ -36,11 +36,9 @@ To install it: <br>
 
 more details on installation here: https://github.com/foundry-rs/foundry
 
-### Tests structure
-
-Tests are located in the tests folders. They use TestHelpers, mainly to set some variables.
-
 ### Running tests
+
+Tests are located in the /tests folders.
 
 to run tests:
 `forge test -vv`

@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
-import "./helpers/Tokens.sol";
-import "./Registry.sol";
+
+import "./Controller.sol";
 import "./helpers/Util.sol";
 import "./StakingStorage.sol";
 import "./helpers/PermissionControl.sol";
@@ -20,9 +20,10 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeERC20 for IERC20;
 
     StakingStorage private storage_;
-    Tokens private tokens_;
-    bool private initialized = false;
+    IERC20 public asto_;
+    IERC20 public lp_;
     uint256 private _totalTokens;
+    bool private initialized = false;
 
     mapping(uint256 => IERC20) public tokens; // asto - 1, lp - 2
 
@@ -35,44 +36,35 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      */
     constructor() {
         address deployer = msg.sender;
-        _setupRole(REGISTRY_ROLE, deployer);
-        _setupRole(MANAGER_ROLE, deployer);
+        _setupRole(CONTROLLER_ROLE, deployer);
         _pause();
     }
 
     /**
      * @dev Setting up persmissions for this contract:
      * @dev only Manager is allowed to call admin functions
-     * @dev only Registry is allowed to update permissions - to reduce amount of DAO votings
+     * @dev only controller is allowed to update permissions - to reduce amount of DAO votings
      *
-     * @param multisig Multisig address as the contract owner
-     * @param registry Registry contract address
+     * @param controller controller contract address
      * @param stakingStorage Staking contract address
+     * @param astoContract ASTO Token contract address
+     * @param lpContract LP Token contract address
      */
     function init(
-        address multisig,
-        address registry,
+        address controller,
         address stakingStorage,
-        Tokens tokensContract
-    ) public onlyRole(MANAGER_ROLE) {
+        IERC20 astoContract,
+        IERC20 lpContract
+    ) public onlyRole(CONTROLLER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
 
-        if (!_isContract(multisig)) revert ContractError(INVALID_MULTISIG);
-        if (!_isContract(registry)) revert ContractError(INVALID_REGISTRY);
-        if (!_isContract(stakingStorage)) revert ContractError(INVALID_STAKING_STORAGE);
-
         storage_ = StakingStorage(stakingStorage);
-        tokens_ = Tokens(tokensContract);
-        uint256 totalTokens = tokens_.getTotalTokens();
-        for (uint256 i = 0; i < totalTokens; ++i) {
-            tokens[i] = tokens_.tokens(i);
-        }
+        asto_ = astoContract;
+        lp_ = lpContract;
 
-        _updateRole(REGISTRY_ROLE, registry);
-        _updateRole(MANAGER_ROLE, multisig);
-        _grantRole(MANAGER_ROLE, registry);
-
+        _updateRole(CONTROLLER_ROLE, controller);
         _unpause();
+
         initialized = true;
     }
 
@@ -100,7 +92,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
         tokens[tokenId].safeTransferFrom(user, address(this), amount);
 
-        storage_.updateHistory(tokenId, user, amount);
+        storage_.updateHistory(user, amount);
         _totalStakedAmount[tokenId] += amount;
 
         emit Staked(user, block.timestamp, amount);
@@ -126,7 +118,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
         uint256 newAmount = userBalance - amount;
-        storage_.updateHistory(tokenId, user, newAmount);
+        storage_.updateHistory(user, newAmount);
         _totalStakedAmount[tokenId] += amount;
 
         tokens[tokenId].safeTransfer(user, amount);
@@ -183,9 +175,5 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
     function unpause() external onlyRole(MANAGER_ROLE) {
         _unpause();
-    }
-
-    function addToken(IERC20 token) external onlyRole(REGISTRY_ROLE) {
-        tokens[++_totalTokens] = token;
     }
 }

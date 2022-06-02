@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.13;
 
-import "../contracts/TestHelpers/StakingStorageTestHelper.sol";
+import "../contracts/StakingStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
-import "../contracts/Registry.sol";
+import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
-import "../contracts/helpers/Tokens.sol";
+
 // import "../contracts/Converter.sol";
 // import "../contracts/ConverterStorage.sol";
 
@@ -20,10 +20,9 @@ import "forge-std/Vm.sol";
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
 contract StakingStorageTestContract is DSTest, IStaking, Util {
-    StakingStorageTestHelper storage_; // Staking Storage - contract under test
+    StakingStorage storage_; // Staking Storage - contract under test
     Staking staker_;
-    Registry registry_;
-    Tokens tokens_;
+    Controller controller_;
     MockedERC20 asto_;
     MockedERC20 lp_;
 
@@ -55,27 +54,22 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     }
 
     function setupTokens() internal {
-        MockedERC20 asto = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
-        MockedERC20 lp = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
-        tokens_ = new Tokens(asto, lp);
-        asto_ = MockedERC20(address(tokens_.tokens(1)));
-        lp_ = MockedERC20(address(tokens_.tokens(2)));
+        asto_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lp_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupContracts() internal {
-        storage_ = new StakingStorageTestHelper();
+        storage_ = new StakingStorage();
         staker_ = new Staking();
-        registry_ = new Registry(
+        controller_ = new Controller(
             address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
-            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
+            address(staker_), // ConverterStorage - Controller checks if the address is a contract, so we fake it
+            address(asto_),
+            address(lp_)
         );
-        tokens_.init(address(multisig), address(registry_));
-        staker_.init(multisig, address(registry_), address(storage_), tokens_);
-        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupWallets() internal {
@@ -99,9 +93,9 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory() public skip(false) {
         uint256 stakeId;
         vm.startPrank(address(staker_));
-        stakeId = storage_.updateHistory(astoToken, deployer, 1);
+        stakeId = storage_.updateHistory(deployer, 1);
         assert(stakeId == 1);
-        stakeId = storage_.updateHistory(astoToken, deployer, 1);
+        stakeId = storage_.updateHistory(deployer, 1);
         assert(stakeId == 2);
     }
 
@@ -114,7 +108,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory_wrong_wallet() public skipFailing(false) {
         vm.prank(address(staker_));
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
-        storage_.updateHistory(astoToken, address(0), 1);
+        storage_.updateHistory(address(0), 1);
     }
 
     /**
@@ -127,7 +121,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xb9e206fa2af7ee1331b72ce58b6d938ac810ce9b5cdb65d35ab723fd67badf9e"
         );
-        storage_.updateHistory(astoToken, deployer, 10);
+        storage_.updateHistory(deployer, 10);
     }
 
     /** ----------------------------------
