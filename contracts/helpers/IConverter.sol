@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 /**
  * @dev Interface for Converter
@@ -8,7 +8,7 @@ pragma solidity ^0.8.6;
 interface IConverter {
     struct Period {
         uint128 startTime;
-        uint128 duration;
-        mapping(address => uint256) multipliers; // token address to multipliers
+        uint128 endTime;
+        mapping(uint256 => uint256) multipliers; // token id to multipliers
     }
 }

@@ -20,6 +20,7 @@ contract Util {
     string constant INVALID_LP_CONTRACT = "Invalid LP contract";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
+    string constant WRONG_PERIOD_ID = "Wrong periodId";
     string constant WRONG_TOKEN = "Token not allowed for staking";
     string constant WRONG_ARGUMENTS = "Arguments are not valid";
     string constant INSUFFICIENT_BALANCE = "Insufficient token balance";
