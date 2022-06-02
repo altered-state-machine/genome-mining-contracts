@@ -11,16 +11,49 @@ See [audit/readme.md](audit/readme.md)
 Prerequisites:
 
 - multisig already created
+- tokens already deployed
 
-1. Tokens.sol, TimeConstants.sol
-2. StakingStorage.sol, ConverterStorage.sol, Staking.sol, Converter.sol
-3. Controller.sol (it will require addresses from 2)
-4. Staking.sol: `init(registryAddress, stakingStorageAddress)`
-5. StakingStorage.sol: `init(registryAddress, stakingAddress)`
-6. Converter.sol: `init(registryAddress, converterStorageAddress)`
-7. ConverterStorage.sol: `init(registryAddress, converterAddress)`
+Steps:
 
-to be continue...
+1. TimeConstants.sol
+2. Controller.sol (with multisig address as a manager)
+3. StakingStorage.sol (x2 for asto and lp tokens) - with controller contract address
+4. ConverterStorage.sol, Staking.sol, Converter.sol - with controller contract address
+5. Controller.sol - call init function and supply all the addresses:
+   1. stakingLogic,
+   2. astoToken,
+   3. astoStorage,
+   4. lpToken,
+   5. lpStorage,
+   6. converterLogic,
+   7. converterStorage
+
+example:
+
+```
+function setupContracts() internal {
+  astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+  lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+
+  controller_ = new Controller(multisig);
+
+  staker_ = new Staking(address(controller_));
+  astoStorage_ = new StakingStorage(address(controller_));
+  lpStorage_ = new StakingStorage(address(controller_));
+  converter_ = new Converter(address(controller_));
+  converterStorage_ = new ConverterStorage(address(controller_));
+
+  controller_.init(
+    address(staker_),
+    address(astoToken_),
+    address(astoStorage_),
+    address(lpToken_),
+    address(lpStorage_),
+    address(converter_),
+    address(converterStorage_)
+  );
+}
+```
 
 ## Testing
 

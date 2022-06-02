@@ -33,7 +33,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
     uint256 amount = 1_234_567_890_000_000_000; // 1.23456789 ASTO
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
-    uint256 astoToken = 1; // tokenId
+    uint256 astoToken = 0; // tokenId
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
@@ -60,31 +60,42 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
+
         staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
+
         controller_.init(
-            address(staker_), // Staker - the real one
             address(astoToken_),
-            address(astoStorage_), // StakingStorage - the real one
+            address(astoStorage_),
             address(lpToken_),
-            address(lpStorage_), // StakingStorage - the real one
-            address(staker_), // Converter - Controller checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Controller checks if the address is a contract, so we fake it
+            address(lpStorage_),
+            address(staker_),
+            address(staker_), // we don't test it here, so we fake it
+            address(staker_) // we don't test it here, so we fake it
         );
     }
 
     function setupWallets() internal {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
-        // topping up staking contract
         astoToken_.mint(address(staker_), userBalance);
         astoToken_.mint(someone, userBalance);
-        lpToken_.mint(address(staker_), userBalance);
     }
 
     /** ----------------------------------
      * ! Admin functions
      * ----------------------------------- */
+
+    function test_beforeAll() public view skip(true) {
+        console.log("Multisig", address(multisig));
+        console.log("Deployer", address(deployer));
+        console.log("Controller", address(controller_));
+        console.log("Staker", address(staker_));
+        console.log("ASTO Token", address(astoToken_));
+        console.log("LP Token", address(lpToken_));
+        console.log("ASTO Storage", address(astoStorage_));
+        console.log("LP Storage", address(lpStorage_));
+    }
 
     /**
      * @notice GIVEN: owner of this contract calls this function
@@ -93,9 +104,10 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: specified amount of specified tokens is transferred to the specified address
      */
     function testWithdraw_happy_path() public skip(false) {
+        vm.prank(address(multisig));
         uint256 balanceBefore = astoToken_.balanceOf(address(staker_));
-        vm.startPrank(address(multisig));
         controller_.pause();
+        vm.prank(address(multisig));
         staker_.withdraw(astoToken, deployer, amount);
         uint256 balanceAfter = astoToken_.balanceOf(address(staker_));
         assert(balanceBefore - balanceAfter == amount);
@@ -187,6 +199,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
         uint256 userBalanceBefore = astoToken_.balanceOf(someone);
 
         vm.startPrank(someone);
+
         astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
 

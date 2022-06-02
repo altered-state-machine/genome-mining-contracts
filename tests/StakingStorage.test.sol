@@ -34,7 +34,6 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     uint256 amount = 1_234_567_890_000_000_000; // 1.23456789 ASTO
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
-    uint256 astoToken = 1; // tokenId
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
@@ -61,17 +60,19 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
+
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
+
         controller_.init(
-            address(staker_), // Staker - the real one
             address(astoToken_),
-            address(astoStorage_), // StakingStorage - the real one
+            address(astoStorage_),
             address(lpToken_),
-            address(lpStorage_), // StakingStorage - the real one
-            address(staker_), // Converter - Controller checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Controller checks if the address is a contract, so we fake it
+            address(lpStorage_),
+            address(staker_),
+            address(staker_), // we don't test it here, so we fake it
+            address(staker_) // we don't test it here, so we fake it
         );
     }
 

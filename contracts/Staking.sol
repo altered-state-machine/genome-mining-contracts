@@ -35,6 +35,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
         _setupRole(CONTROLLER_ROLE, controller);
+        _setupRole(MANAGER_ROLE, controller);
         _pause();
     }
 
@@ -43,25 +44,27 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @dev only Manager is allowed to call admin functions
      * @dev only controller is allowed to update permissions - to reduce amount of DAO votings
      *
-     * @param astoContract ASTO Token contract address
-     * @param lpContract LP Token contract address
+     * @param astoToken ASTO Token contract address
+     * @param lpToken LP Token contract address
      * @param astoStorage ASTO staking storage contract address
      * @param lpStorage LP staking storage contract address
      */
     function init(
-        IERC20 astoContract,
+        address manager,
+        IERC20 astoToken,
         address astoStorage,
-        IERC20 lpContract,
+        IERC20 lpToken,
         address lpStorage
     ) public onlyRole(CONTROLLER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
 
-        _token[0] = astoContract;
+        _token[0] = astoToken;
         _storage[0] = StakingStorage(astoStorage);
 
-        _token[1] = lpContract;
+        _token[1] = lpToken;
         _storage[1] = StakingStorage(lpStorage);
 
+        _updateRole(MANAGER_ROLE, manager);
         _unpause();
         initialized = true;
     }
@@ -83,13 +86,12 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      */
     function stake(uint256 tokenId, uint256 amount) external whenNotPaused {
         if (tokenId > 1) revert InvalidInput(WRONG_TOKEN);
-        if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
+        if (amount == 0) revert InvalidInput(WRONG_AMOUNT);
         address user = msg.sender;
         uint256 userBalance = _token[tokenId].balanceOf(user);
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
         _token[tokenId].safeTransferFrom(user, address(this), amount);
-
         _storage[tokenId].updateHistory(user, amount);
         _totalStakedAmount[tokenId] += amount;
 
@@ -107,7 +109,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      */
     function unstake(uint256 tokenId, uint256 amount) external {
         if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
-        if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
+        if (amount == 0) revert InvalidInput(WRONG_AMOUNT);
 
         address user = msg.sender;
         uint256 id = _storage[tokenId].getUserLastStakeId(user);
@@ -166,7 +168,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     )
         public
         whenPaused // when contract is paused ONLY
-        onlyRole(CONTROLLER_ROLE)
+        onlyRole(MANAGER_ROLE)
     {
         if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
