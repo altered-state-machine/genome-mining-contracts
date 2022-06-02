@@ -15,11 +15,12 @@ contract Util {
     string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic contract";
     string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage contract";
     string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic contract";
-    string constant INVALID_CONVERTER_STORAGE = "Invalid Converter Storage contract";
+    string constant INVALID_ENERGY_STORAGE = "Invalid Energy Storage contract";
     string constant INVALID_ASTO_CONTRACT = "Invalid ASTO contract";
     string constant INVALID_LP_CONTRACT = "Invalid LP contract";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
+    string constant WRONG_PERIOD_ID = "Wrong periodId";
     string constant WRONG_TOKEN = "Token not allowed for staking";
     string constant INSUFFICIENT_BALANCE = "Insufficient token balance";
     string constant INSUFFICIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
