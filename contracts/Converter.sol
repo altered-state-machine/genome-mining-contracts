@@ -3,6 +3,8 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "./Staking.sol";
+import "./EnergyStorage.sol";
 import "./helpers/IConverter.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Util.sol";
@@ -20,6 +22,9 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     // PeriodId start from 1
     mapping(uint256 => Period) public periods;
 
+    Staking public stakingLogic_;
+    EnergyStorage public energyStorage_;
+
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
@@ -28,12 +33,12 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     }
 
     function _initPeriods() internal {
-      // TODO add 3 periods
+        // TODO add 3 periods
     }
 
     function getPeriod(uint256 periodId) public view returns (Period memory) {
-      if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-      return periods[periodId]
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        return periods[periodId];
     }
 
     /**
@@ -43,8 +48,8 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      */
     function getCurrentPeriodId() public view returns (uint256) {
         for (uint256 index = 1; index <= periodIdCounter; index++) {
-            Period storage p = periods[index];
-            if (currentTime() >= uint256(p.startTime) && currentTime() < uint256(p.startTime) + uint256(p.duration)) {
+            Period memory p = periods[index];
+            if (currentTime() >= uint256(p.startTime) && currentTime() < uint256(p.endTime)) {
                 return index;
             }
         }
@@ -53,7 +58,7 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     }
 
     function getCurrentPeriod() public view returns (Period memory) {
-      return periods[getCurrentPeriodId()];
+        return periods[getCurrentPeriodId()];
     }
 
     /**
@@ -61,29 +66,22 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      * @notice Function can be called only manager
      *
      */
-    function _addPeriod(
-        uint128 startTime,
-        uint128 endTime,
-        address[] memory tokens,
-        uint256[] memory multipliers
-    ) internal {
-        if (tokens.length != multipliers.length) revert ContractError(WRONG_ARGUMENTS);
-
-        Period storage p = periods[++periodIdCounter];
-        p.startTime = startTime;
-        p.endTime= endTime;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            p.multipliers[tokens[i]] = multipliers[i];
-        }
+    function _addPeriod(Period memory period) internal {
+        periods[++periodIdCounter] = period;
+        // TODO emit event
     }
 
-    function addPeriod(
-        uint128 startTime,
-        uint128 endTime,
-        address[] memory tokens,
-        uint256[] memory multipliers
-    ) external whenNotPaused onlyRole(ONLY_MANAGER) {
-      _addPeriod(startTime, endTime, tokens, multipliers)
+    function addPeriod(Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
+        _addPeriod(period);
+    }
+
+    function _updatePeriod(uint256 periodId, Period memory period) internal {
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        periods[periodId] = period;
+    }
+
+    function updatePeriod(uint256 periodId, Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
+        _updatePeriod(periodId, period);
     }
 
     /**
@@ -118,9 +116,6 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
 
     /**
      * @notice Consume energy
-     *
-     * @param recipient - the contract address to receive the energy
-     * @param amount - the amount of energy to transfer
      */
     function useEnergy(uint256 amount) external {}
 
@@ -136,37 +131,31 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     }
 
     /** ----------------------------------
-     * ! Only owner functions
+     * ! Admin functions
      * ----------------------------------- */
 
-    /**
-     * @param registry Registry contract address
-     * @param energyStorage Energy storage contract address
-     * @param stakingStorage Staking storage contract address
-     */
     function init(
-        address energyStorage,
-        address stakingLogic,
         address manager,
+        address energyStorage,
+        address stakingLogic
     ) external onlyRole(CONTROLLER_ROLE) {
         require(!initialized, "The contract has already been initialized.");
 
-        if (!_isContract(energyStorage)) revert ContractError(INVALID_CONVERTER_STORAGE);
+        if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
         if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
 
-        _unpause();
-
-        initialized = true;
+        stakingLogic_ = Staking(stakingLogic);
+        energyStorage_ = EnergyStorage(energyStorage);
 
         _grantRole(MANAGER_ROLE, manager);
-
-        // TODO setup Storage contracts
+        _unpause();
+        initialized = true;
     }
 
     /**
      * @notice Pause the contract
      */
-    function pause() external onlyOwner(CONTROLLER_ROLE) {
+    function pause() external onlyRole(CONTROLLER_ROLE) {
         _pause();
     }
 
@@ -175,5 +164,13 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
+    }
+
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    function setManager(address newManager) external onlyRole(MANAGER_ROLE) {
+        _updateRole(MANAGER_ROLE, newManager);
     }
 }

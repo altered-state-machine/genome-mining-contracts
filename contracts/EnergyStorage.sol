@@ -21,7 +21,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
-        _grantRole(CONTROLLER, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
         _pause();
     }
 
@@ -29,26 +29,19 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      * @notice Update balance for `addr` on period `periodId`
      * @notice Function can be called only manager
      *
-     * @param periodId - id of period to update
-     * @param addr - user address
-     * @param balance - new balance
      */
     function increaseConsumedAmount(address addr, uint256 amount) external whenNotPaused onlyRole(CONVERTER_ROLE) {
         if (address(addr) == address(0)) revert ContractError(WRONG_ADDRESS);
 
-        consumedAmount += amount;
+        consumedAmount[addr] += amount;
 
         // TODO emit event
     }
 
     /** ----------------------------------
-     * ! Only owner functions
+     * ! Admin functions
      * ----------------------------------- */
 
-    /**
-     * @param registry Registry contract address
-     * @param converterLogic Converter contract address
-     */
     function init(address converterLogic) external onlyRole(CONTROLLER_ROLE) {
         require(!initialized, "The contract has already been initialized.");
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
@@ -69,5 +62,9 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
+    }
+
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
     }
 }

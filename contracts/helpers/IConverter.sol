@@ -9,6 +9,7 @@ interface IConverter {
     struct Period {
         uint128 startTime;
         uint128 endTime;
-        mapping(uint256 => uint256) multipliers; // token id to multipliers
+        uint128 astoMultiplier;
+        uint128 lpMultiplier;
     }
 }
