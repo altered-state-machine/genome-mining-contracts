@@ -20,10 +20,9 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     // PeriodId start from 1
     mapping(uint256 => Period) public periods;
 
-    constructor(address controller, address manager) {
+    constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
-        _grantRole(MANAGER_ROLE, manager);
         _initPeriods();
         _pause();
     }
@@ -87,7 +86,6 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
       _addPeriod(startTime, endTime, tokens, multipliers)
     }
 
-
     /**
      * @notice Calculate the available energy for `addr`
      *
@@ -149,6 +147,7 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     function init(
         address energyStorage,
         address stakingLogic,
+        address manager,
     ) external onlyRole(CONTROLLER_ROLE) {
         require(!initialized, "The contract has already been initialized.");
 
@@ -158,6 +157,8 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
         _unpause();
 
         initialized = true;
+
+        _grantRole(MANAGER_ROLE, manager);
 
         // TODO setup Storage contracts
     }
