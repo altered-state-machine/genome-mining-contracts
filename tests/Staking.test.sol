@@ -205,13 +205,11 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
         uint256 logicBalanceAfter = astoToken_.balanceOf(address(staker_));
         uint256 userBalanceAfter = astoToken_.balanceOf(someone);
-        uint256 counter = astoStorage_.getTotalStakesCounter();
         uint256 lastStakeId = astoStorage_.getUserLastStakeId(someone);
         uint256 userLastStakeId = astoStorage_.getUserLastStakeId(someone);
         Stake memory newStake = astoStorage_.getStake(someone, userLastStakeId);
 
         assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
-        assertEq(counter, 1);
         assertEq(logicBalanceAfter, logicBalanceBefore + amount, "logicBalanceAfter == logicBalanceBefore + amount");
         assertEq(userBalanceBefore, userBalance, "userBalanceBefore == userBalance");
         assertEq(userBalanceAfter, userBalanceBefore - amount, "userBalanceAfter == userBalanceBefore - amount");
@@ -264,9 +262,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
 
         uint256 logicBalanceAfter = astoToken_.balanceOf(address(staker_));
         uint256 userBalanceAfter = astoToken_.balanceOf(someone);
-        uint256 counter = astoStorage_.getTotalStakesCounter();
 
-        uint256 lastStakeId = astoStorage_.getLastStakeId();
         userLastStakeId = astoStorage_.getUserLastStakeId(someone);
         Stake memory afterUnstakeBalance = astoStorage_.getStake(someone, userLastStakeId);
 
@@ -276,8 +272,6 @@ contract StakingTestContract is DSTest, IStaking, Util {
         assertEq(userBalanceAfter, userBalance, "User balance should be restored after unstake");
         assertEq(userBalanceAfter, userBalanceBefore + amount, "User balance = balance before unstake + amount");
         // user STAKE balance check
-        assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
-        assertEq(counter, 2); // 1 stake + 1 unstake (both updates counter)
         assertEq(
             afterUnstakeBalance.amount,
             beforeUnstakeBalance.amount - amount,

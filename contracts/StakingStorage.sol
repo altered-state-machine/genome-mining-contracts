@@ -17,9 +17,7 @@ import "./helpers/PermissionControl.sol";
  */
 contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     bool private _initialized = false;
-    uint256 private _totalCounter;
-    // Incremented total stakes counter, pointing to the address of who staked
-    mapping(uint256 => address) private _stakes; // _totalStakesCounter => user address
+
     // Incrementing stake Id used to record history
     mapping(address => uint256) private _stakeIds;
     // Store stake history per each address keyed by stake Id
@@ -59,8 +57,6 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     function updateHistory(address addr, uint256 amount) public onlyRole(STAKER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
-        _stakes[++_totalCounter] = addr; // incrementing total stakes counter
-
         uint128 time = uint128(block.timestamp); // not more that 1 stake per second
         Stake memory newStake = Stake(time, amount);
         uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
@@ -72,20 +68,12 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * ! Getters
      * ----------------------------------- */
 
-    function getTotalStakesCounter() public view returns (uint256) {
-        return _totalCounter;
-    }
-
     function getStake(address addr, uint256 id) public view returns (Stake memory) {
         return _stakeHistory[addr][id];
     }
 
     function getUserLastStakeId(address addr) public view returns (uint256) {
         return _stakeIds[addr];
-    }
-
-    function getLastStakeId() public view returns (uint256) {
-        return _stakeIds[_stakes[_totalCounter]];
     }
 
     /** ----------------------------------
