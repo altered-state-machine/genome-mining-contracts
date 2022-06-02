@@ -16,7 +16,7 @@ import "./helpers/PermissionControl.sol";
  * @dev ASM Genome Mining - Staking Storage contract
  */
 contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
-    bool private initialized = false;
+    bool private _initialized = false;
     uint256 private _totalCounter;
     // Incremented total stakes counter, pointing to the address of who staked
     mapping(uint256 => address) private _stakes; // _totalStakesCounter => user address
@@ -42,11 +42,11 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param stakingLogic Staking contract address
      */
     function init(address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
-        require(initialized == false, ALREADY_INITIALIZED);
+        require(_initialized == false, ALREADY_INITIALIZED);
         _updateRole(STAKER_ROLE, stakingLogic);
 
         _unpause();
-        initialized = true;
+        _initialized = true;
     }
 
     /**
@@ -92,6 +92,9 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     /** ----------------------------------
      * ! Controls
      * ----------------------------------- */
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
+    }
 
     function pause() external onlyRole(MANAGER_ROLE) {
         _pause();

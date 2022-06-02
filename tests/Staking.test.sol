@@ -20,10 +20,11 @@ import "forge-std/Vm.sol";
  */
 contract StakingTestContract is DSTest, IStaking, Util {
     Staking staker_;
-    StakingStorage storage_;
+    StakingStorage astoStorage_;
+    StakingStorage lpStorage_;
     Controller controller_;
-    MockedERC20 asto_;
-    MockedERC20 lp_;
+    MockedERC20 astoToken_;
+    MockedERC20 lpToken_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -53,30 +54,32 @@ contract StakingTestContract is DSTest, IStaking, Util {
     }
 
     function setupTokens() internal {
-        asto_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
-        lp_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
         staker_ = new Staking(address(controller_));
-        storage_ = new StakingStorage(address(controller_));
+        astoStorage_ = new StakingStorage(address(controller_));
+        lpStorage_ = new StakingStorage(address(controller_));
         controller_.init(
             address(staker_), // Staker - the real one
-            address(storage_), // StakingStorage - the real one
+            address(astoToken_),
+            address(astoStorage_), // StakingStorage - the real one
+            address(lpToken_),
+            address(lpStorage_), // StakingStorage - the real one
             address(staker_), // Converter - Controller checks if the address is a contract, so we fake it
-            address(staker_), // ConverterStorage - Controller checks if the address is a contract, so we fake it
-            address(asto_),
-            address(lp_)
+            address(staker_) // ConverterStorage - Controller checks if the address is a contract, so we fake it
         );
     }
 
     function setupWallets() internal {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
         // topping up staking contract
-        asto_.mint(address(staker_), userBalance);
-        asto_.mint(someone, userBalance);
-        lp_.mint(address(staker_), userBalance);
+        astoToken_.mint(address(staker_), userBalance);
+        astoToken_.mint(someone, userBalance);
+        lpToken_.mint(address(staker_), userBalance);
     }
 
     /** ----------------------------------
@@ -90,11 +93,11 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: specified amount of specified tokens is transferred to the specified address
      */
     function testWithdraw_happy_path() public skip(false) {
-        uint256 balanceBefore = asto_.balanceOf(address(staker_));
+        uint256 balanceBefore = astoToken_.balanceOf(address(staker_));
         vm.startPrank(address(multisig));
         controller_.pause();
         staker_.withdraw(astoToken, deployer, amount);
-        uint256 balanceAfter = asto_.balanceOf(address(staker_));
+        uint256 balanceAfter = astoToken_.balanceOf(address(staker_));
         assert(balanceBefore - balanceAfter == amount);
     }
 
@@ -123,7 +126,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice  THEN: reverts with message "insuffucient balance"
      */
     function testWithdraw_insufficient_balance() public skip(false) {
-        uint256 balanceBefore = asto_.balanceOf(address(staker_));
+        uint256 balanceBefore = astoToken_.balanceOf(address(staker_));
         vm.startPrank(multisig);
         controller_.pause();
         vm.expectRevert(abi.encodeWithSelector(Util.InvalidInput.selector, INSUFFICIENT_BALANCE));
@@ -180,19 +183,19 @@ contract StakingTestContract is DSTest, IStaking, Util {
      * @notice   AND: update stake history of the user
      */
     function testStake_happy_path() public skip(false) {
-        uint256 logicBalanceBefore = asto_.balanceOf(address(staker_));
-        uint256 userBalanceBefore = asto_.balanceOf(someone);
+        uint256 logicBalanceBefore = astoToken_.balanceOf(address(staker_));
+        uint256 userBalanceBefore = astoToken_.balanceOf(someone);
 
         vm.startPrank(someone);
-        asto_.approve(address(staker_), amount); // this one initiated by UI
+        astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
 
-        uint256 logicBalanceAfter = asto_.balanceOf(address(staker_));
-        uint256 userBalanceAfter = asto_.balanceOf(someone);
-        uint256 counter = storage_.getTotalStakesCounter();
-        uint256 lastStakeId = storage_.getUserLastStakeId(someone);
-        uint256 userLastStakeId = storage_.getUserLastStakeId(someone);
-        Stake memory newStake = storage_.getStake(someone, userLastStakeId);
+        uint256 logicBalanceAfter = astoToken_.balanceOf(address(staker_));
+        uint256 userBalanceAfter = astoToken_.balanceOf(someone);
+        uint256 counter = astoStorage_.getTotalStakesCounter();
+        uint256 lastStakeId = astoStorage_.getUserLastStakeId(someone);
+        uint256 userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        Stake memory newStake = astoStorage_.getStake(someone, userLastStakeId);
 
         assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
         assertEq(counter, 1);
@@ -236,23 +239,23 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testUnstake_happy_path() public skip(false) {
         vm.startPrank(someone);
-        asto_.approve(address(staker_), amount); // this one initiated by UI
+        astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
-        uint256 logicBalanceBefore = asto_.balanceOf(address(staker_));
-        uint256 userBalanceBefore = asto_.balanceOf(someone);
+        uint256 logicBalanceBefore = astoToken_.balanceOf(address(staker_));
+        uint256 userBalanceBefore = astoToken_.balanceOf(someone);
 
-        uint256 userLastStakeId = storage_.getUserLastStakeId(someone);
-        Stake memory beforeUnstakeBalance = storage_.getStake(someone, userLastStakeId);
+        uint256 userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        Stake memory beforeUnstakeBalance = astoStorage_.getStake(someone, userLastStakeId);
 
         staker_.unstake(astoToken, amount);
 
-        uint256 logicBalanceAfter = asto_.balanceOf(address(staker_));
-        uint256 userBalanceAfter = asto_.balanceOf(someone);
-        uint256 counter = storage_.getTotalStakesCounter();
+        uint256 logicBalanceAfter = astoToken_.balanceOf(address(staker_));
+        uint256 userBalanceAfter = astoToken_.balanceOf(someone);
+        uint256 counter = astoStorage_.getTotalStakesCounter();
 
-        uint256 lastStakeId = storage_.getLastStakeId();
-        userLastStakeId = storage_.getUserLastStakeId(someone);
-        Stake memory afterUnstakeBalance = storage_.getStake(someone, userLastStakeId);
+        uint256 lastStakeId = astoStorage_.getLastStakeId();
+        userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        Stake memory afterUnstakeBalance = astoStorage_.getStake(someone, userLastStakeId);
 
         // contract and user ASTO balances checks
         assertEq(logicBalanceAfter, logicBalanceBefore - amount, "Contract balance decreased");
@@ -277,7 +280,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
      */
     function testUnstake_insufficient_balance() public skip(false) {
         vm.startPrank(someone);
-        asto_.approve(address(staker_), amount); // this one initiated by UI
+        astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INSUFFICIENT_BALANCE));
         staker_.unstake(astoToken, userBalance + amount + 1);
@@ -316,7 +319,7 @@ contract StakingTestContract is DSTest, IStaking, Util {
         uint256 res = staker_.getTotalValueLocked(astoToken);
         assert(res == 0);
         vm.startPrank(someone);
-        asto_.approve(address(staker_), amount); // this one initiated by UI
+        astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, 1);
         res = staker_.getTotalValueLocked(astoToken);
         assert(res == 1);

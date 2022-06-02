@@ -19,15 +19,17 @@ import "./helpers/PermissionControl.sol";
 contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeERC20 for IERC20;
 
-    StakingStorage private storage_;
-    IERC20 public asto_;
-    IERC20 public lp_;
-    uint256 private _totalTokens;
     bool private initialized = false;
 
-    mapping(uint256 => IERC20) public tokens; // asto - 1, lp - 2
-
-    // Stores total amount for the token: token => amount
+    /**
+     * `_token`:  tokenId => token contract address
+     * `_storage`:  tokenId => storage contract address
+     * `_totalStakedAmount`:  tokenId => total staked amount for that tokenId
+     *
+     * IDs: 0 for ASTO, 1 for LP tokens
+     */
+    mapping(uint256 => IERC20) private _token;
+    mapping(uint256 => StakingStorage) private _storage;
     mapping(uint256 => uint256) private _totalStakedAmount;
 
     constructor(address controller) {
@@ -41,20 +43,24 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @dev only Manager is allowed to call admin functions
      * @dev only controller is allowed to update permissions - to reduce amount of DAO votings
      *
-     * @param stakingStorage Staking contract address
      * @param astoContract ASTO Token contract address
      * @param lpContract LP Token contract address
+     * @param astoStorage ASTO staking storage contract address
+     * @param lpStorage LP staking storage contract address
      */
     function init(
-        address stakingStorage,
         IERC20 astoContract,
-        IERC20 lpContract
+        address astoStorage,
+        IERC20 lpContract,
+        address lpStorage
     ) public onlyRole(CONTROLLER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
 
-        storage_ = StakingStorage(stakingStorage);
-        asto_ = astoContract;
-        lp_ = lpContract;
+        _token[0] = astoContract;
+        _storage[0] = StakingStorage(astoStorage);
+
+        _token[1] = lpContract;
+        _storage[1] = StakingStorage(lpStorage);
 
         _unpause();
         initialized = true;
@@ -76,15 +82,15 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param amount - amount of tokens to stake
      */
     function stake(uint256 tokenId, uint256 amount) external whenNotPaused {
-        if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
+        if (tokenId > 1) revert InvalidInput(WRONG_TOKEN);
         if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
         address user = msg.sender;
-        uint256 userBalance = tokens[tokenId].balanceOf(user);
+        uint256 userBalance = _token[tokenId].balanceOf(user);
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
-        tokens[tokenId].safeTransferFrom(user, address(this), amount);
+        _token[tokenId].safeTransferFrom(user, address(this), amount);
 
-        storage_.updateHistory(user, amount);
+        _storage[tokenId].updateHistory(user, amount);
         _totalStakedAmount[tokenId] += amount;
 
         emit Staked(user, block.timestamp, amount);
@@ -100,20 +106,20 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param amount - amount of tokens to stake
      */
     function unstake(uint256 tokenId, uint256 amount) external {
-        if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
+        if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (amount <= 0) revert InvalidInput(WRONG_AMOUNT);
 
         address user = msg.sender;
-        uint256 id = storage_.getUserLastStakeId(user);
+        uint256 id = _storage[tokenId].getUserLastStakeId(user);
         if (id == 0) revert InvalidInput(NO_STAKES);
-        uint256 userBalance = (storage_.getStake(user, id)).amount;
+        uint256 userBalance = (_storage[tokenId].getStake(user, id)).amount;
         if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
         uint256 newAmount = userBalance - amount;
-        storage_.updateHistory(user, newAmount);
+        _storage[tokenId].updateHistory(user, newAmount);
         _totalStakedAmount[tokenId] += amount;
 
-        tokens[tokenId].safeTransfer(user, amount);
+        _token[tokenId].safeTransfer(user, amount);
 
         emit UnStaked(user, block.timestamp, amount);
     }
@@ -131,13 +137,21 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * ! Getters
      * ----------------------------------- */
 
-    function getStorageAddress() public view returns (address) {
-        return address(storage_);
+    function getStorageAddress(uint256 tokenId) public view returns (address) {
+        return address(_storage[tokenId]);
+    }
+
+    function getTokenAddress(uint256 tokenId) public view returns (address) {
+        return address(_token[tokenId]);
     }
 
     /** ----------------------------------
      * ! Admin functions
      * ----------------------------------- */
+
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
+    }
 
     /**
      * @notice Withdraw tokens left in the contract to specified address
@@ -152,20 +166,20 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     )
         public
         whenPaused // when contract is paused ONLY
-        onlyRole(MANAGER_ROLE)
+        onlyRole(CONTROLLER_ROLE)
     {
-        if (!_isContract(address(tokens[tokenId]))) revert InvalidInput(WRONG_TOKEN);
+        if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (tokens[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
+        if (_token[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
 
-        tokens[tokenId].safeTransfer(recipient, amount);
+        _token[tokenId].safeTransfer(recipient, amount);
     }
 
-    function pause() external onlyRole(MANAGER_ROLE) {
+    function pause() external onlyRole(CONTROLLER_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(MANAGER_ROLE) {
+    function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
     }
 }

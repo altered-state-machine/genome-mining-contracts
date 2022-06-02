@@ -20,11 +20,12 @@ import "forge-std/Vm.sol";
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
 contract StakingStorageTestContract is DSTest, IStaking, Util {
-    StakingStorage storage_; // Staking Storage - contract under test
+    StakingStorage astoStorage_;
+    StakingStorage lpStorage_;
     Staking staker_;
     Controller controller_;
-    MockedERC20 asto_;
-    MockedERC20 lp_;
+    MockedERC20 astoToken_;
+    MockedERC20 lpToken_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -54,21 +55,23 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     }
 
     function setupTokens() internal {
-        asto_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
-        lp_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
-        storage_ = new StakingStorage(address(controller_));
+        astoStorage_ = new StakingStorage(address(controller_));
+        lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
         controller_.init(
             address(staker_), // Staker - the real one
-            address(storage_), // StakingStorage - the real one
-            address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
-            address(staker_), // ConverterStorage - Controller checks if the address is a contract, so we fake it
-            address(asto_),
-            address(lp_)
+            address(astoToken_),
+            address(astoStorage_), // StakingStorage - the real one
+            address(lpToken_),
+            address(lpStorage_), // StakingStorage - the real one
+            address(staker_), // Converter - Controller checks if the address is a contract, so we fake it
+            address(staker_) // ConverterStorage - Controller checks if the address is a contract, so we fake it
         );
     }
 
@@ -76,8 +79,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
         vm.deal(deployer, 1); // gas spendings
         vm.deal(someone, 1); // gas spendings
-        asto_.mint(someone, userBalance);
-        lp_.mint(someone, userBalance);
+        astoToken_.mint(someone, userBalance);
+        lpToken_.mint(someone, userBalance);
     }
 
     /** ----------------------------------
@@ -93,9 +96,9 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory() public skip(false) {
         uint256 stakeId;
         vm.startPrank(address(staker_));
-        stakeId = storage_.updateHistory(deployer, 1);
+        stakeId = astoStorage_.updateHistory(deployer, 1);
         assert(stakeId == 1);
-        stakeId = storage_.updateHistory(deployer, 1);
+        stakeId = astoStorage_.updateHistory(deployer, 1);
         assert(stakeId == 2);
     }
 
@@ -108,7 +111,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory_wrong_wallet() public skipFailing(false) {
         vm.prank(address(staker_));
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
-        storage_.updateHistory(address(0), 1);
+        astoStorage_.updateHistory(address(0), 1);
     }
 
     /**
@@ -121,7 +124,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xb9e206fa2af7ee1331b72ce58b6d938ac810ce9b5cdb65d35ab723fd67badf9e"
         );
-        storage_.updateHistory(deployer, 10);
+        astoStorage_.updateHistory(deployer, 10);
     }
 
     /** ----------------------------------
