@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.13;
 
-import "../contracts/TestHelpers/StakingStorageTestHelper.sol";
+import "../contracts/StakingStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
-import "../contracts/Registry.sol";
+import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
-import "../contracts/helpers/Tokens.sol";
+
 // import "../contracts/Converter.sol";
 // import "../contracts/ConverterStorage.sol";
 
@@ -20,12 +20,12 @@ import "forge-std/Vm.sol";
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
 contract StakingStorageTestContract is DSTest, IStaking, Util {
-    StakingStorageTestHelper storage_; // Staking Storage - contract under test
+    StakingStorage astoStorage_;
+    StakingStorage lpStorage_;
     Staking staker_;
-    Registry registry_;
-    Tokens tokens_;
-    MockedERC20 asto_;
-    MockedERC20 lp_;
+    Controller controller_;
+    MockedERC20 astoToken_;
+    MockedERC20 lpToken_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -34,7 +34,6 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     uint256 amount = 1_234_567_890_000_000_000; // 1.23456789 ASTO
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
-    uint256 astoToken = 1; // tokenId
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
@@ -55,35 +54,34 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     }
 
     function setupTokens() internal {
-        MockedERC20 asto = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
-        MockedERC20 lp = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
-        tokens_ = new Tokens(asto, lp);
-        asto_ = MockedERC20(address(tokens_.tokens(1)));
-        lp_ = MockedERC20(address(tokens_.tokens(2)));
+        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupContracts() internal {
-        storage_ = new StakingStorageTestHelper();
-        staker_ = new Staking();
-        registry_ = new Registry(
-            address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
-            address(tokens_), // Tokens - Registry checks if the address is a contract, so we fake it
-            address(staker_), // Staker - the real one
-            address(storage_), // StakingStorage - the real one
-            address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
-            address(staker_) // ConverterStorage - Registry checks if the address is a contract, so we fake it
+        controller_ = new Controller(multisig);
+
+        astoStorage_ = new StakingStorage(address(controller_));
+        lpStorage_ = new StakingStorage(address(controller_));
+        staker_ = new Staking(address(controller_));
+
+        controller_.init(
+            address(astoToken_),
+            address(astoStorage_),
+            address(lpToken_),
+            address(lpStorage_),
+            address(staker_),
+            address(staker_), // we don't test it here, so we fake it
+            address(staker_) // we don't test it here, so we fake it
         );
-        tokens_.init(address(multisig), address(registry_));
-        staker_.init(multisig, address(registry_), address(storage_), tokens_);
-        storage_.init(multisig, address(registry_), address(staker_));
     }
 
     function setupWallets() internal {
         vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
         vm.deal(deployer, 1); // gas spendings
         vm.deal(someone, 1); // gas spendings
-        asto_.mint(someone, userBalance);
-        lp_.mint(someone, userBalance);
+        astoToken_.mint(someone, userBalance);
+        lpToken_.mint(someone, userBalance);
     }
 
     /** ----------------------------------
@@ -99,9 +97,9 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory() public skip(false) {
         uint256 stakeId;
         vm.startPrank(address(staker_));
-        stakeId = storage_.updateHistory(astoToken, deployer, 1);
+        stakeId = astoStorage_.updateHistory(deployer, 1);
         assert(stakeId == 1);
-        stakeId = storage_.updateHistory(astoToken, deployer, 1);
+        stakeId = astoStorage_.updateHistory(deployer, 1);
         assert(stakeId == 2);
     }
 
@@ -114,7 +112,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     function testUpdateHistory_wrong_wallet() public skipFailing(false) {
         vm.prank(address(staker_));
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
-        storage_.updateHistory(astoToken, address(0), 1);
+        astoStorage_.updateHistory(address(0), 1);
     }
 
     /**
@@ -127,7 +125,7 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xb9e206fa2af7ee1331b72ce58b6d938ac810ce9b5cdb65d35ab723fd67badf9e"
         );
-        storage_.updateHistory(astoToken, deployer, 10);
+        astoStorage_.updateHistory(deployer, 10);
     }
 
     /** ----------------------------------

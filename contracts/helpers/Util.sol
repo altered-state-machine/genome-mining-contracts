@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.13;
 
-import "./Tokens.sol";
-
 /**
  * @dev ASM Genome Mining - Utility contract
  */
@@ -12,13 +10,14 @@ contract Util {
     error ContractError(string errMsg);
 
     string constant ALREADY_INITIALIZED = "The contract has already been initialized";
-    string constant INVALID_MULTISIG = "Invalid Multisig address";
-    string constant INVALID_TOKENS = "Invalid Tokens contract address";
-    string constant INVALID_REGISTRY = "Invalid Registry address";
-    string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic address";
-    string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage address";
-    string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic address";
-    string constant INVALID_CONVERTER_STORAGE = "Invalid Converter Storage address";
+    string constant INVALID_MULTISIG = "Invalid Multisig contract";
+    string constant INVALID_CONTROLLER = "Invalid Controller contract";
+    string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic contract";
+    string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage contract";
+    string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic contract";
+    string constant INVALID_CONVERTER_STORAGE = "Invalid Converter Storage contract";
+    string constant INVALID_ASTO_CONTRACT = "Invalid ASTO contract";
+    string constant INVALID_LP_CONTRACT = "Invalid LP contract";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
     string constant WRONG_TOKEN = "Token not allowed for staking";
