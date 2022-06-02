@@ -20,11 +20,11 @@ Steps:
 3. StakingStorage.sol (x2 for asto and lp tokens) - with controller contract address
 4. ConverterStorage.sol, Staking.sol, Converter.sol - with controller contract address
 5. Controller.sol - call init function and supply all the addresses:
-   1. stakingLogic,
-   2. astoToken,
-   3. astoStorage,
-   4. lpToken,
-   5. lpStorage,
+   1. astoToken,
+   2. astoStorage,
+   3. lpToken,
+   4. lpStorage,
+   5. stakingLogic,
    6. converterLogic,
    7. converterStorage
 
@@ -44,11 +44,11 @@ function setupContracts() internal {
   converterStorage_ = new ConverterStorage(address(controller_));
 
   controller_.init(
-    address(staker_),
     address(astoToken_),
     address(astoStorage_),
     address(lpToken_),
     address(lpStorage_),
+    address(staker_),
     address(converter_),
     address(converterStorage_)
   );
