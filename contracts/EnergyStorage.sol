@@ -6,17 +6,14 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
 
-// TODO update comments
-
 /**
  * @dev ASM Genome Mining - Energy Storage contract
  *
  * Store consumed energy amount for each address.
- * The contract is managed by a Controller contract.
+ * This contract will be called from Converter logic contract (Converter.sol)
  */
 contract EnergyStorage is Util, Pausable, PermissionControl {
     bool private initialized = false;
-
     mapping(address => uint256) public consumedAmount;
 
     constructor(address controller) {
@@ -26,12 +23,14 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
     }
 
     /**
-     * @notice Update balance for `addr` on period `periodId`
-     * @notice Function can be called only manager
+     * @dev Increase consumed energy for address `addr`
+     * @dev can only be called by Converter
      *
+     * @param addr The wallet address which consumed the energy
+     * @param amount The amount of consumed energy
      */
     function increaseConsumedAmount(address addr, uint256 amount) external whenNotPaused onlyRole(CONVERTER_ROLE) {
-        if (address(addr) == address(0)) revert ContractError(WRONG_ADDRESS);
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
         consumedAmount[addr] += amount;
 
@@ -42,6 +41,12 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      * ! Admin functions
      * ----------------------------------- */
 
+    /**
+     * @dev Initialize the contract:
+     * @dev only controller is allowed to call this function
+     *
+     * @param converterLogic Converter logic contract address
+     */
     function init(address converterLogic) external onlyRole(CONTROLLER_ROLE) {
         require(!initialized, "The contract has already been initialized.");
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
@@ -51,19 +56,25 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
     }
 
     /**
-     * @notice Pause the contract
+     * @dev Pause the contract
+     * @dev only controller is allowed to call this function
      */
     function pause() external onlyRole(CONTROLLER_ROLE) {
         _pause();
     }
 
     /**
-     * @notice Unpause the contract
+     * @dev Unpause the contract
+     * @dev only controller is allowed to call this function
      */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
     }
 
+    /**
+     * @dev Update the controller contract address
+     * @dev only controller is allowed to call this function
+     */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }

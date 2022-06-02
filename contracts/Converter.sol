@@ -10,10 +10,12 @@ import "./helpers/TimeConstants.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
 
-// TODO comments
-
 /**
  * @dev ASM Genome Mining - Converter Logic contract
+ *
+ * This contracts provides functionality for ASTO Energy calculation and conversion.
+ * Energy is calculated based on the token staking history from staking contract and multipliers pre-defined for ASTO and LP tokens.
+ * Eenrgy can be consumed on multiple purposes.
  */
 contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausable {
     bool private initialized = false;
@@ -32,17 +34,26 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
         _pause();
     }
 
+    /**
+     * @dev Initialize all 3 periods
+     */
     function _initPeriods() internal {
         // TODO add 3 periods
     }
 
+    /**
+     * @dev Get period data by period id `periodId`
+     *
+     * @param periodId The id of period to get
+     * @return a Period struct
+     */
     function getPeriod(uint256 periodId) public view returns (Period memory) {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         return periods[periodId];
     }
 
     /**
-     * @notice Get the current periodId based on current timestamp
+     * @notice Get the current period id based on current timestamp
      *
      * @return current periodId
      */
@@ -53,71 +64,137 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
                 return index;
             }
         }
-
         return 0;
     }
 
+    /**
+     * @notice Get the current period based on current timestamp
+     *
+     * @return current period data
+     */
     function getCurrentPeriod() public view returns (Period memory) {
         return periods[getCurrentPeriodId()];
     }
 
     /**
-     * @notice Setup new period
-     * @notice Function can be called only manager
+     * @dev Add a new period
+     * @dev This is an internal function
      *
+     * @param period The period instance to add
      */
     function _addPeriod(Period memory period) internal {
         periods[++periodIdCounter] = period;
         // TODO emit event
     }
 
+    /**
+     * @dev Add a new period
+     * @dev Only manager contract has the permission to call this function
+     *
+     * @param period The period instance to add
+     */
     function addPeriod(Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
         _addPeriod(period);
     }
 
+    /**
+     * @dev Update a period
+     * @dev This is an internal function
+     *
+     * @param periodId The period id to update
+     * @param period The period data to update
+     */
     function _updatePeriod(uint256 periodId, Period memory period) internal {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         periods[periodId] = period;
     }
 
+    /**
+     * @dev Update a period
+     * @dev Only manager contract has the permission to call this function
+     *
+     * @param periodId The period id to update
+     * @param period The period data to update
+     */
     function updatePeriod(uint256 periodId, Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
         _updatePeriod(periodId, period);
     }
 
     /**
-     * @notice Calculate the available energy for `addr`
+     * @dev Get consumed energy amount for address `addr
      *
-     * @param addr - wallet address to calculate
-     * @return Energy avaiable
+     * @param addr The wallet address to get consumed energy for
+     * @return Consumed energy amount
      */
-    function getEnergy(address addr) external returns (uint256) {}
+    function getConsumedEnergy(address addr) public view returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        return energyStorage_.consumedAmount(addr);
+    }
 
     /**
-     * @notice Estimate energy can be generated per day for all stakes
+     * @dev Calculate the energy for `addr` based on the staking history  before the endTime of specified period
      *
-     * @return Energy can be generated
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount
      */
-    function getEstimatedEnergyPerDay() public view returns (uint256) {}
+    function calculateEnergy(address addr, uint256 periodId) public view returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        // TODO calculate energy based on staking history
+        return 0;
+    }
 
     /**
-     * @notice Get total energy balance in storage contract
+     * @dev Get the energy amount available for address `addr`
      *
-     * @return Total energy balance
+     * @param addr The wallet address to get energy for
+     * @param periodId The period id for energy calculation
+     * @return Energy amount available
      */
-    function getTotalEnergy() public view returns (uint256) {}
+    function getEnergy(address addr, uint256 periodId) public returns (uint256) {
+        return calculateEnergy(addr, periodId) - getConsumedEnergy(addr);
+    }
 
     /**
-     * @notice Get user share of the whole energy pool
+     * @dev Estimate energy can be generated per day for all stakes
      *
-     * @param periodId - the periodId to calculate
-     * @return Share number
+     * @return Energy amount can be generated per day
      */
-    function getPeriodShare(uint256 periodId) public view returns (uint256) {}
+    function getEstimatedEnergyPerDay() public view returns (uint256) {
+        // TODO
+        return 0;
+    }
 
     /**
-     * @notice Consume energy
+     * @dev Get total energy amount for all stakes before the endTime of period
+     *
+     * @param periodId The period id for energy calculation
+     * @return Total energy amount
      */
-    function useEnergy(uint256 amount) external {}
+    function getTotalEnergy(uint256 periodId) public view returns (uint256) {
+        // TODO
+        return 0;
+    }
+
+    /**
+     * @dev Consume energy generated before the endTime of period `periodId`
+     *
+     * @param addr The wallet address to consume from
+     * @param periodId The period id for energy consumption
+     * @param amount The amount of energy to consume
+     */
+    function useEnergy(
+        address addr,
+        uint256 periodId,
+        uint256 amount
+    ) external {
+        // TODO check permission
+        // TODO check period
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
+
+        energyStorage_.increaseConsumedAmount(addr, amount);
+    }
 
     /**
      * @notice Get the current periodId based on current timestamp
@@ -134,6 +211,14 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      * ! Admin functions
      * ----------------------------------- */
 
+    /**
+     * @dev Initialize the contract:
+     * @dev only controller is allowed to call this function
+     *
+     * @param manager The manager contract address
+     * @param energyStorage The energy storage contract address
+     * @param stakingLogic The staking logic contrct address
+     */
     function init(
         address manager,
         address energyStorage,
@@ -153,23 +238,33 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     }
 
     /**
-     * @notice Pause the contract
+     * @dev Pause the contract
+     * @dev only controller is allowed to call this function
      */
     function pause() external onlyRole(CONTROLLER_ROLE) {
         _pause();
     }
 
     /**
-     * @notice Unpause the contract
+     * @dev Unpause the contract
+     * @dev only controller is allowed to call this function
      */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
     }
 
+    /**
+     * @dev Update the controller contract address
+     * @dev only controller is allowed to call this function
+     */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
 
+    /**
+     * @dev Update the manager contract address
+     * @dev only manager is allowed to call this function
+     */
     function setManager(address newManager) external onlyRole(MANAGER_ROLE) {
         _updateRole(MANAGER_ROLE, newManager);
     }
