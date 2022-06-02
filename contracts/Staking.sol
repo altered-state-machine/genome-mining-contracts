@@ -30,13 +30,9 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     // Stores total amount for the token: token => amount
     mapping(uint256 => uint256) private _totalStakedAmount;
 
-    /**
-     * @dev 1. Contracts addresses for the roles are not known yet
-     * @dev 2. Do setup before transfer ownership to the DAO's multisig contract
-     */
-    constructor() {
-        address deployer = msg.sender;
-        _setupRole(CONTROLLER_ROLE, deployer);
+    constructor(address controller) {
+        if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
+        _setupRole(CONTROLLER_ROLE, controller);
         _pause();
     }
 
@@ -45,13 +41,11 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @dev only Manager is allowed to call admin functions
      * @dev only controller is allowed to update permissions - to reduce amount of DAO votings
      *
-     * @param controller controller contract address
      * @param stakingStorage Staking contract address
      * @param astoContract ASTO Token contract address
      * @param lpContract LP Token contract address
      */
     function init(
-        address controller,
         address stakingStorage,
         IERC20 astoContract,
         IERC20 lpContract
@@ -62,9 +56,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         asto_ = astoContract;
         lp_ = lpContract;
 
-        _updateRole(CONTROLLER_ROLE, controller);
         _unpause();
-
         initialized = true;
     }
 

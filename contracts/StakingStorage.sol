@@ -25,14 +25,10 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     // Store stake history per each address keyed by stake Id
     mapping(address => mapping(uint256 => Stake)) private _stakeHistory;
 
-    /**
-     * @dev 1. Contracts addresses for the roles are not known yet
-     * @dev 2. Do setup before transfer ownership to the DAO's multisig contract
-     */
-    constructor() {
-        address deployer = msg.sender;
-        _setupRole(CONTROLLER_ROLE, deployer);
-        _setupRole(STAKER_ROLE, deployer);
+    constructor(address controller) {
+        if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
+        _setupRole(CONTROLLER_ROLE, controller);
+        _setupRole(STAKER_ROLE, controller);
         _pause();
     }
 
@@ -45,13 +41,11 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param controller Controller contract address
      * @param stakingLogic Staking contract address
      */
-    function init(address controller, address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
+    function init(address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
         require(initialized == false, ALREADY_INITIALIZED);
-
-        _updateRole(CONTROLLER_ROLE, controller);
         _updateRole(STAKER_ROLE, stakingLogic);
-        _unpause();
 
+        _unpause();
         initialized = true;
     }
 

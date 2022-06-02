@@ -28,16 +28,20 @@ contract Controller is Util, PermissionControl {
 
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
-    constructor(
-        address multisig,
+    constructor(address multisig) {
+        if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
+        manager = multisig;
+        _setupRole(MANAGER_ROLE, multisig); // `RoleGranted` event will be emitted
+    }
+
+    function init(
         address stakingLogic,
         address stakingStorage,
         address converterLogic,
         address converterStorage,
         address astoContract,
         address lpContract
-    ) {
-        if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
+    ) public onlyRole(MANAGER_ROLE) {
         if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
         if (!_isContract(stakingStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
         if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
@@ -45,8 +49,6 @@ contract Controller is Util, PermissionControl {
         if (!_isContract(astoContract)) revert InvalidInput(INVALID_ASTO_CONTRACT);
         if (!_isContract(lpContract)) revert InvalidInput(INVALID_LP_CONTRACT);
 
-        manager = multisig;
-        _setupRole(MANAGER_ROLE, multisig); // `RoleGranted` event will be emitted
         _upgradeContracts(address(this), stakingLogic, stakingStorage, converterLogic, converterStorage);
     }
 
@@ -147,13 +149,13 @@ contract Controller is Util, PermissionControl {
 
     function _setStakingLogic(address newContract) internal {
         stakingLogic_ = Staking(newContract);
-        stakingLogic_.init(address(this), address(stakingStorage_), IERC20(asto_), IERC20(lp_));
+        stakingLogic_.init(address(stakingStorage_), IERC20(asto_), IERC20(lp_));
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
     function _setStakingStorage(address newContract) internal {
         stakingStorage_ = StakingStorage(newContract);
-        stakingStorage_.init(address(this), address(stakingLogic_));
+        stakingStorage_.init(address(stakingLogic_));
         emit ContractUpgraded(block.timestamp, "Staking Storage", address(this), newContract);
     }
 

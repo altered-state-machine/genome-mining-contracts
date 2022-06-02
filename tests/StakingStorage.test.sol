@@ -59,10 +59,10 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     }
 
     function setupContracts() internal {
-        storage_ = new StakingStorage();
-        staker_ = new Staking();
-        controller_ = new Controller(
-            address(multisig), // Multisig - Registry checks if the address is a contract, so we fake it
+        controller_ = new Controller(multisig);
+        storage_ = new StakingStorage(address(controller_));
+        staker_ = new Staking(address(controller_));
+        controller_.init(
             address(staker_), // Staker - the real one
             address(storage_), // StakingStorage - the real one
             address(staker_), // Converter - Registry checks if the address is a contract, so we fake it
