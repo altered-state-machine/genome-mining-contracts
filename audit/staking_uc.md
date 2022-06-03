@@ -32,10 +32,6 @@ An Owner can pause the contract, which should stop both, staking, and unstaking.
 
 An Owner can unpause paused contract to allow staking and unstaking again.
 
-### Transfer ownership (OZ Ownable.sol) `transferOwnership()` _onlyOwner_
-
-It will be done at least once, automatically, at contract creation. After the contract was created, the ownership will be transferred to the specified address DAO.
-
 <br>
 
 ## Staking Logic contract use cases
@@ -60,10 +56,6 @@ How many tokens are staked in the contract right now.
 
 An Owner can withdraw unclaimed tokens to the specified address. Storage balance is not affected.
 
-### Forced unstake `forceUnstake()` _onlyOwner_
+### Get the address' staking history `getHistory()`
 
-An Owner can unstake tokens and send them to the specified address. Stake balance will be updated.
-
-### Set token address `setToken()` _onlyOwner_
-
-An Owner can set/update the address of the token.
+Returns all the stakes of the address

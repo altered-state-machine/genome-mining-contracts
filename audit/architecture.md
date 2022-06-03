@@ -12,20 +12,16 @@ Status: <br>
 
 ![GEN II Brains Minting event](assets/architecture.png)
 
-In case we want to update logic we can develop and deploy a completely new logic contract with a hard-coded storage(s) address(es). We should be able to change the address of the contract that has rights to CRUD operations:
+In case we want to update logic we can develop and deploy a completely new logic contract. We are able to change the address of the contract that has rights to read/write operations by introducing Controller, that can call some admin functions, like `pause()` and can init contracts with other contract addresses with just one call from Manager (Multisig wallet of DAO).
 
-`function updateManager(address newLogicContract) external onlyOwner {}`
+To simplify further, we hardcode storage addresses in the logic contracts. Not a big deal, as logic contracts could be re-deployed.
 
-Replacing the Converter contract will require 2 updates, in both storages.
-
-To decrease the number of votes required from DAO we can use the Registry contract, that can call `updateManager()` for both storages at once.
-
-We don’t need to use it to update addresses in the logic contract, as they can be redeployed without DAO (but will still require updates in their storage).
+Controller also used to set contract addresses that have write access.
 
 ### Pros:
 
-Simple and safe: low complexity, clear logic, good readability, and low development efforts.
+Simple and safe: medium complexity, clear logic, good readability, and low development efforts. OpenZeppelin contracts to use.
 
 ### Cons:
 
-Storage contracts still have some logic `updateManager()`
+All contracts should be aware of Controller and roles.

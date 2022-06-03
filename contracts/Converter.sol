@@ -30,6 +30,7 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
+        _grantRole(USER_ROLE, controller);
         _initPeriods();
         _pause();
     }
