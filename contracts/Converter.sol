@@ -3,9 +3,11 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./Staking.sol";
 import "./EnergyStorage.sol";
 import "./helpers/IConverter.sol";
+import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
@@ -17,7 +19,9 @@ import "./helpers/PermissionControl.sol";
  * Energy is calculated based on the token staking history from staking contract and multipliers pre-defined for ASTO and LP tokens.
  * Eenrgy can be consumed on multiple purposes.
  */
-contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausable {
+contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionControl, Pausable {
+    using SafeMath for uint256;
+
     bool private initialized = false;
 
     uint256 public periodIdCounter = 0;
@@ -27,18 +31,23 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
     Staking public stakingLogic_;
     EnergyStorage public energyStorage_;
 
-    constructor(address controller) {
+    uint256 public constant ASTO_TOKEN_ID = 0;
+    uint256 public constant LP_TOKEN_ID = 1;
+
+    constructor(address controller, Period[] memory _periods) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
-        _initPeriods();
+        _initPeriods(_periods);
         _pause();
     }
 
     /**
-     * @dev Initialize all 3 periods
+     * @dev Initialize pre-defined periods
      */
-    function _initPeriods() internal {
-        // TODO add 3 periods
+    function _initPeriods(Period[] memory _periods) internal {
+        for (uint256 i = 0; i < _periods.length; i++) {
+            _addPeriod(_periods[i]);
+        }
     }
 
     /**
@@ -84,7 +93,6 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      */
     function _addPeriod(Period memory period) internal {
         periods[++periodIdCounter] = period;
-        // TODO emit event
     }
 
     /**
@@ -140,8 +148,38 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      */
     function calculateEnergy(address addr, uint256 periodId) public view returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        // TODO calculate energy based on staking history
-        return 0;
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+
+        Period memory period = getPeriod(periodId);
+
+        Stake[] memory astoHistory = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
+        Stake[] memory lpHistory = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
+
+        uint256 astoEnergyAmount = _calculateEnergyForToken(astoHistory, period.astoMultiplier);
+        uint256 lpEnergyAmount = _calculateEnergyForToken(lpHistory, period.lpMultiplier);
+
+        return (astoEnergyAmount + lpEnergyAmount);
+    }
+
+    /**
+     * @dev Calculate the energy for specific staked token
+     *
+     * @param history The staking history for the staked token
+     * @param multiplier The multiplier for staked token
+     * @return total energy amount for the token
+     */
+    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
+        uint256 total = 0;
+        uint256 prevStakedAmount = 0;
+        for (uint256 i = 0; i < history.length; i++) {
+            if (currentTime() < history[i].time) continue;
+
+            uint256 elapsedTime = currentTime().sub(history[i].time);
+            uint256 elapsedDays = elapsedTime.div(SECONDS_PER_DAY);
+            total = total.add(elapsedDays.mul(history[i].amount.sub(prevStakedAmount)).mul(multiplier));
+            prevStakedAmount = history[i].amount;
+        }
+        return total;
     }
 
     /**
@@ -153,27 +191,6 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
      */
     function getEnergy(address addr, uint256 periodId) public returns (uint256) {
         return calculateEnergy(addr, periodId) - getConsumedEnergy(addr);
-    }
-
-    /**
-     * @dev Estimate energy can be generated per day for all stakes
-     *
-     * @return Energy amount can be generated per day
-     */
-    function getEstimatedEnergyPerDay() public view returns (uint256) {
-        // TODO
-        return 0;
-    }
-
-    /**
-     * @dev Get total energy amount for all stakes before the endTime of period
-     *
-     * @param periodId The period id for energy calculation
-     * @return Total energy amount
-     */
-    function getTotalEnergy(uint256 periodId) public view returns (uint256) {
-        // TODO
-        return 0;
     }
 
     /**
@@ -189,8 +206,8 @@ contract Converter is IConverter, TimeConstants, Util, PermissionControl, Pausab
         uint256 amount
     ) external {
         // TODO check permission
-        // TODO check period
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
         energyStorage_.increaseConsumedAmount(addr, amount);
