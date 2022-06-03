@@ -37,96 +37,14 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     constructor(address controller, Period[] memory _periods) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
+        _grantRole(USER_ROLE, controller);
         _initPeriods(_periods);
         _pause();
     }
 
-    /**
-     * @dev Initialize pre-defined periods
-     */
-    function _initPeriods(Period[] memory _periods) internal {
-        for (uint256 i = 0; i < _periods.length; i++) {
-            _addPeriod(_periods[i]);
-        }
-    }
-
-    /**
-     * @dev Get period data by period id `periodId`
-     *
-     * @param periodId The id of period to get
-     * @return a Period struct
-     */
-    function getPeriod(uint256 periodId) public view returns (Period memory) {
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-        return periods[periodId];
-    }
-
-    /**
-     * @notice Get the current period id based on current timestamp
-     *
-     * @return current periodId
-     */
-    function getCurrentPeriodId() public view returns (uint256) {
-        for (uint256 index = 1; index <= periodIdCounter; index++) {
-            Period memory p = periods[index];
-            if (currentTime() >= uint256(p.startTime) && currentTime() < uint256(p.endTime)) {
-                return index;
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * @notice Get the current period based on current timestamp
-     *
-     * @return current period data
-     */
-    function getCurrentPeriod() public view returns (Period memory) {
-        return periods[getCurrentPeriodId()];
-    }
-
-    /**
-     * @dev Add a new period
-     * @dev This is an internal function
-     *
-     * @param period The period instance to add
-     */
-    function _addPeriod(Period memory period) internal {
-        periods[++periodIdCounter] = period;
-    }
-
-    /**
-     * @dev Add a new period
-     * @dev Only manager contract has the permission to call this function
-     *
-     * @param period The period instance to add
-     */
-    function addPeriod(Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
-        _addPeriod(period);
-    }
-
-    /**
-     * @dev Update a period
-     * @dev This is an internal function
-     *
-     * @param periodId The period id to update
-     * @param period The period data to update
-     */
-    function _updatePeriod(uint256 periodId, Period memory period) internal {
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-        periods[periodId] = period;
-    }
-
-    /**
-     * @dev Update a period
-     * @dev Only manager contract has the permission to call this function
-     *
-     * @param periodId The period id to update
-     * @param period The period data to update
-     */
-    function updatePeriod(uint256 periodId, Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
-        _updatePeriod(periodId, period);
-    }
+    /** ----------------------------------
+     * ! Business logic
+     * ----------------------------------- */
 
     /**
      * @dev Get consumed energy amount for address `addr
@@ -189,7 +107,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      * @param periodId The period id for energy calculation
      * @return Energy amount available
      */
-    function getEnergy(address addr, uint256 periodId) public returns (uint256) {
+    function getEnergy(address addr, uint256 periodId) public view returns (uint256) {
         return calculateEnergy(addr, periodId) - getConsumedEnergy(addr);
     }
 
@@ -204,13 +122,51 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         address addr,
         uint256 periodId,
         uint256 amount
-    ) external {
-        // TODO check permission
+    ) external onlyRole(USER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
         energyStorage_.increaseConsumedAmount(addr, amount);
+    }
+
+    /** ----------------------------------
+     * ! Getters
+     * ----------------------------------- */
+
+    /**
+     * @dev Get period data by period id `periodId`
+     *
+     * @param periodId The id of period to get
+     * @return a Period struct
+     */
+    function getPeriod(uint256 periodId) public view returns (Period memory) {
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        return periods[periodId];
+    }
+
+    /**
+     * @notice Get the current period based on current timestamp
+     *
+     * @return current period data
+     */
+    function getCurrentPeriod() public view returns (Period memory) {
+        return periods[getCurrentPeriodId()];
+    }
+
+    /**
+     * @notice Get the current period id based on current timestamp
+     *
+     * @return current periodId
+     */
+    function getCurrentPeriodId() public view returns (uint256) {
+        for (uint256 index = 1; index <= periodIdCounter; index++) {
+            Period memory p = periods[index];
+            if (currentTime() >= uint256(p.startTime) && currentTime() < uint256(p.endTime)) {
+                return index;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -255,19 +211,63 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     }
 
     /**
-     * @dev Pause the contract
-     * @dev only controller is allowed to call this function
+     * @dev Initialize pre-defined periods
      */
-    function pause() external onlyRole(CONTROLLER_ROLE) {
-        _pause();
+    function _initPeriods(Period[] memory _periods) internal {
+        for (uint256 i = 0; i < _periods.length; i++) {
+            _addPeriod(_periods[i]);
+        }
     }
 
     /**
-     * @dev Unpause the contract
-     * @dev only controller is allowed to call this function
+     * @dev Add a new period
+     * @dev This is an internal function
+     *
+     * @param period The period instance to add
      */
-    function unpause() external onlyRole(CONTROLLER_ROLE) {
-        _unpause();
+    function _addPeriod(Period memory period) internal {
+        periods[++periodIdCounter] = period;
+    }
+
+    /**
+     * @dev Add a new period
+     * @dev Only manager contract has the permission to call this function
+     *
+     * @param period The period instance to add
+     */
+    function addPeriod(Period memory period) external onlyRole(MANAGER_ROLE) {
+        _addPeriod(period);
+    }
+
+    /**
+     * @dev Update a period
+     * @dev This is an internal function
+     *
+     * @param periodId The period id to update
+     * @param period The period data to update
+     */
+    function _updatePeriod(uint256 periodId, Period memory period) internal {
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        periods[periodId] = period;
+    }
+
+    /**
+     * @dev Update a period
+     * @dev Only manager contract has the permission to call this function
+     *
+     * @param periodId The period id to update
+     * @param period The period data to update
+     */
+    function updatePeriod(uint256 periodId, Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
+        _updatePeriod(periodId, period);
+    }
+
+    /** ----------------------------------
+     * ! Behaviour control functions
+     * ----------------------------------- */
+
+    function setUser(address addr) external onlyRole(MANAGER_ROLE) {
+        _updateRole(USER_ROLE, addr);
     }
 
     /**
@@ -284,5 +284,21 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      */
     function setManager(address newManager) external onlyRole(MANAGER_ROLE) {
         _updateRole(MANAGER_ROLE, newManager);
+    }
+
+    /**
+     * @dev Pause the contract
+     * @dev only controller is allowed to call this function
+     */
+    function pause() external onlyRole(CONTROLLER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpause the contract
+     * @dev only controller is allowed to call this function
+     */
+    function unpause() external onlyRole(CONTROLLER_ROLE) {
+        _unpause();
     }
 }
