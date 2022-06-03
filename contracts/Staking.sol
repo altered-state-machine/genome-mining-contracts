@@ -191,7 +191,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         uint256 tokenId,
         address addr,
         uint256 endTime
-    ) public returns (Stake[] memory) {
+    ) public view returns (Stake[] memory) {
         return _storage[tokenId].getHistory(addr, endTime);
     }
 }
