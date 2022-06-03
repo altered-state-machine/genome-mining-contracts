@@ -332,6 +332,33 @@ contract StakingTestContract is DSTest, IStaking, Util {
         assert(res == 1);
     }
 
+    /**
+     * @notice GIVEN: token, address, and endTime
+     * @notice  WHEN: anyone calls this function
+     * @notice  THEN: return staking history
+     */
+    function testGetHistory() public skip(false) {
+        vm.startPrank(someone);
+        astoToken_.approve(address(staker_), amount * 4); // 3 stakes to be made
+
+        // Stakes are to be made back in time
+        vm.warp(1000);
+        staker_.stake(0, amount);
+        vm.warp(2000);
+        staker_.stake(0, amount);
+        vm.warp(4000);
+        staker_.stake(0, amount);
+        vm.warp(5000);
+        staker_.stake(0, amount);
+
+        // getting history up to stake 3 (before the latest stake)
+        Stake[] memory history = staker_.getHistory(astoToken, someone, 3000);
+
+        assertEq(history.length, 2, "Should be 2");
+        // assertEq(history[0].time, 1000, "Should be 1000");
+        // assertEq(history[1].time, 2000, "Should be 2000");
+    }
+
     /** ----------------------------------
      * ! Test contract modifiers
      * ----------------------------------- */
