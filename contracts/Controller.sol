@@ -10,8 +10,6 @@ import "./EnergyStorage.sol";
 import "./helpers/PermissionControl.sol";
 import "./helpers/Util.sol";
 
-// import "forge-std/console.sol";
-
 /**
  * @dev ASM Genome Mining - Registry contract
  * @notice We use this contract to manage contracts addresses

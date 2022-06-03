@@ -8,9 +8,10 @@ import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
+import "../contracts/helpers/IConverter.sol";
 
-// import "../contracts/Converter.sol";
-// import "../contracts/ConverterStorage.sol";
+import "../contracts/Converter.sol";
+import "../contracts/EnergyStorage.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -19,13 +20,15 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
-contract StakingStorageTestContract is DSTest, IStaking, Util {
+contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Staking staker_;
     Controller controller_;
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
+    EnergyStorage energyStorage_;
+    Converter converterLogic_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -64,6 +67,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
+        converterLogic_ = new Converter(address(controller_), new Period[](0));
+        energyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
             address(astoToken_),
@@ -71,8 +76,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
-            address(staker_), // we don't test it here, so we fake it
-            address(staker_) // we don't test it here, so we fake it
+            address(converterLogic_),
+            address(energyStorage_)
         );
     }
 

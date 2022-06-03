@@ -15,6 +15,11 @@ import "forge-std/Vm.sol";
 contract EnergyStorageTestContract is DSTest, Util {
     EnergyStorage energyStorage_;
     Converter converterLogic_;
+    Controller controller_;
+
+    // Cheat codes are state changing methods called from the address:
+    // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
+    Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);

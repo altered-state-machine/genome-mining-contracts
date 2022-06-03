@@ -197,7 +197,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         address energyStorage,
         address stakingLogic
     ) external onlyRole(CONTROLLER_ROLE) {
-        require(!initialized, "The contract has already been initialized.");
+        require(initialized == false, ALREADY_INITIALIZED);
 
         if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
         if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
