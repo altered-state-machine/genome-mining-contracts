@@ -12,8 +12,6 @@ import "./Staking.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
@@ -74,24 +72,6 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
         return _stakeHistory[addr][id];
     }
 
-    // THIS Version is a bit more expensive
-
-    // function getHistory(address addr, uint256 endTime) public view returns (Stake[] memory) {
-    //     uint256 totalStakes = _stakeIds[addr];
-
-    //     uint256 realLength;
-    //     for (uint256 i = 1; i <= totalStakes; i++) {
-    //         if (_stakeHistory[addr][i].time <= endTime) ++realLength;
-    //     }
-
-    //     Stake[] memory stakes = new Stake[](realLength);
-    //     // _stakeHistory[addr] starts from 1, see `updateHistory`
-    //     for (uint256 i = 1; i < realLength; i++) {
-    //         stakes[i] = _stakeHistory[addr][i];
-    //     }
-    //     return stakes;
-    // }
-
     function getHistory(address addr, uint256 endTime) public view returns (Stake[] memory) {
         uint256 totalStakes = _stakeIds[addr];
 
@@ -102,12 +82,13 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
             Stake memory stake = _stakeHistory[addr][i];
             if (stake.time <= endTime) stakes[i - 1] = stake;
             else {
-                // shortening array to return
+                // shortening array before returning
                 Stake[] memory res = new Stake[](i - 1);
                 for (uint256 j = 0; j < res.length; j++) res[j] = stakes[j];
                 return res;
             }
         }
+        return stakes;
     }
 
     function getUserLastStakeId(address addr) public view returns (uint256) {
