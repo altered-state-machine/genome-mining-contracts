@@ -12,6 +12,8 @@ import "./Staking.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @dev ASM Genome Mining - Staking Storage contract
  */
@@ -57,9 +59,9 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     function updateHistory(address addr, uint256 amount) public onlyRole(STAKER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
-        uint128 time = uint128(block.timestamp); // not more that 1 stake per second
+        uint128 time = uint128(block.timestamp);
         Stake memory newStake = Stake(time, amount);
-        uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, stakeIds starts from 1
+        uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, _stakeHistory[addr] starts from 1
         _stakeHistory[addr][userStakeId] = newStake;
         return userStakeId;
     }
@@ -70,6 +72,42 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
 
     function getStake(address addr, uint256 id) public view returns (Stake memory) {
         return _stakeHistory[addr][id];
+    }
+
+    // THIS Version is a bit more expensive
+
+    // function getHistory(address addr, uint256 endTime) public view returns (Stake[] memory) {
+    //     uint256 totalStakes = _stakeIds[addr];
+
+    //     uint256 realLength;
+    //     for (uint256 i = 1; i <= totalStakes; i++) {
+    //         if (_stakeHistory[addr][i].time <= endTime) ++realLength;
+    //     }
+
+    //     Stake[] memory stakes = new Stake[](realLength);
+    //     // _stakeHistory[addr] starts from 1, see `updateHistory`
+    //     for (uint256 i = 1; i < realLength; i++) {
+    //         stakes[i] = _stakeHistory[addr][i];
+    //     }
+    //     return stakes;
+    // }
+
+    function getHistory(address addr, uint256 endTime) public view returns (Stake[] memory) {
+        uint256 totalStakes = _stakeIds[addr];
+
+        Stake[] memory stakes = new Stake[](totalStakes); // suboptimal - it could be larger than needed, when endTime is lesser than current time
+
+        // _stakeHistory[addr] starts from 1, see `updateHistory`
+        for (uint256 i = 1; i < totalStakes + 1; i++) {
+            Stake memory stake = _stakeHistory[addr][i];
+            if (stake.time <= endTime) stakes[i - 1] = stake;
+            else {
+                // shortening array to return
+                Stake[] memory res = new Stake[](i - 1);
+                for (uint256 j = 0; j < res.length; j++) res[j] = stakes[j];
+                return res;
+            }
+        }
     }
 
     function getUserLastStakeId(address addr) public view returns (uint256) {

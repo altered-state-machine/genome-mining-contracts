@@ -41,6 +41,44 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         _pause();
     }
 
+    /** ----------------------------------
+     * ! Admin functions
+     * ----------------------------------- */
+
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    /**
+     * @notice Withdraw tokens left in the contract to specified address
+     * @param tokenId - ID of token to stake
+     * @param recipient recipient of the transfer
+     * @param amount Token amount to withdraw
+     */
+    function withdraw(
+        uint256 tokenId,
+        address recipient,
+        uint256 amount
+    )
+        public
+        whenPaused // when contract is paused ONLY
+        onlyRole(MANAGER_ROLE)
+    {
+        if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
+        if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (_token[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
+
+        _token[tokenId].safeTransfer(recipient, amount);
+    }
+
+    function pause() external onlyRole(CONTROLLER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(CONTROLLER_ROLE) {
+        _unpause();
+    }
+
     /**
      * @dev Setting up persmissions for this contract:
      * @dev only Manager is allowed to call admin functions
@@ -121,7 +159,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
         uint256 newAmount = userBalance - amount;
         _storage[tokenId].updateHistory(user, newAmount);
-        _totalStakedAmount[tokenId] += amount;
+        _totalStakedAmount[tokenId] -= amount; // TODO: add tests for checking totalAmount
 
         _token[tokenId].safeTransfer(user, amount);
 
@@ -149,41 +187,11 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         return address(_token[tokenId]);
     }
 
-    /** ----------------------------------
-     * ! Admin functions
-     * ----------------------------------- */
-
-    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
-    }
-
-    /**
-     * @notice Withdraw tokens left in the contract to specified address
-     * @param tokenId - ID of token to stake
-     * @param recipient recipient of the transfer
-     * @param amount Token amount to withdraw
-     */
-    function withdraw(
+    function getHistory(
         uint256 tokenId,
-        address recipient,
-        uint256 amount
-    )
-        public
-        whenPaused // when contract is paused ONLY
-        onlyRole(MANAGER_ROLE)
-    {
-        if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
-        if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (_token[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
-
-        _token[tokenId].safeTransfer(recipient, amount);
-    }
-
-    function pause() external onlyRole(CONTROLLER_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(CONTROLLER_ROLE) {
-        _unpause();
+        address addr,
+        uint256 endTime
+    ) public returns (Stake[] memory) {
+        return _storage[tokenId].getHistory(addr, endTime);
     }
 }
