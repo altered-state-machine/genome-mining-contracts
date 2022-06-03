@@ -48,7 +48,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      * @param converterLogic Converter logic contract address
      */
     function init(address converterLogic) external onlyRole(CONTROLLER_ROLE) {
-        require(initialized, "The contract has already been initialized.");
+        require(initialized == false, ALREADY_INITIALIZED);
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
         _setupRole(CONVERTER_ROLE, converterLogic);
