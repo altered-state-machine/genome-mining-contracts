@@ -1,8 +1,0 @@
-version: '3'
-
-services:
-  ci:
-    build:
-      context: .
-      dockerfile: build.Dockerfile
-    image: "495781280038.dkr.ecr.us-west-2.amazonaws.com/build-artifacts:asm-contracts"
