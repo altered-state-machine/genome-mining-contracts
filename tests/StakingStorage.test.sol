@@ -7,6 +7,8 @@ import "../contracts/mocks/MockedERC20.sol";
 import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
+import "../contracts/Converter.sol";
+import "../contracts/EnergyStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 
 // import "../contracts/Converter.sol";
@@ -23,6 +25,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Staking staker_;
+    Converter converter_;
+    EnergyStorage energyStorage_;
     Controller controller_;
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
@@ -64,6 +68,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
+        converter_ = new Converter(address(controller_));
+        energyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
             address(astoToken_),
@@ -71,8 +77,8 @@ contract StakingStorageTestContract is DSTest, IStaking, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
-            address(staker_), // we don't test it here, so we fake it
-            address(staker_) // we don't test it here, so we fake it
+            address(converter_),
+            address(energyStorage_)
         );
     }
 

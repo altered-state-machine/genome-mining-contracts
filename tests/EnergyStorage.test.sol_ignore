@@ -4,6 +4,9 @@ pragma solidity ^0.8.13;
 
 import "../contracts/EnergyStorage.sol";
 import "../contracts/Controller.sol";
+import "../contracts/helpers/IConverter.sol";
+
+import "../contracts/mocks/MockedERC20.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -12,10 +15,15 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM Genome Mining - Energy Storage contract
  */
-contract EnergyStorageTestContract is DSTest, Util {
+contract EnergyStorageTestContract is DSTest, Util, IConverter {
     EnergyStorage energyStorage_;
-    Converter converterLogic_;
+    Converter converter_;
     Controller controller_;
+    Staking staker_;
+    StakingStorage astoStorage_;
+    StakingStorage lpStorage_;
+    MockedERC20 astoToken_;
+    MockedERC20 lpToken_;
 
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
@@ -32,6 +40,22 @@ contract EnergyStorageTestContract is DSTest, Util {
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
+
+        staker_ = new Staking(address(controller_));
+        astoStorage_ = new StakingStorage(address(controller_));
+        lpStorage_ = new StakingStorage(address(controller_));
+        converter_ = new Converter(address(controller_), new Period());
+        energyStorage_ = new EnergyStorage(address(controller_));
+
+        controller_.init(
+            address(astoToken_),
+            address(astoStorage_),
+            address(lpToken_),
+            address(lpStorage_),
+            address(staker_),
+            address(staker_), // we don't test it here, so we fake it
+            address(staker_) // we don't test it here, so we fake it
+        );
     }
 
     function setupWallets() internal {

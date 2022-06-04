@@ -10,8 +10,6 @@ import "./EnergyStorage.sol";
 import "./helpers/PermissionControl.sol";
 import "./helpers/Util.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @dev ASM Genome Mining - Registry contract
  * @notice We use this contract to manage contracts addresses
@@ -75,14 +73,6 @@ contract Controller is Util, PermissionControl {
             converterLogic,
             energyStorage
         );
-
-        // console.log("Manager", address(manager));
-        // console.log("Controller", address(controller_));
-        // console.log("Staker", address(stakingLogic_));
-        // console.log("ASTO Token", address(astoToken_));
-        // console.log("LP Token", address(lpToken_));
-        // console.log("ASTO Storage", address(astoStorage_));
-        // console.log("LP Storage", address(lpStorage_));
     }
 
     /** ----------------------------------
