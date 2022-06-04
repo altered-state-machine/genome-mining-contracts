@@ -6,38 +6,15 @@
   "devDependencies": {
     "@ecmendenhall/ds-test": "^0.0.1",
     "@ecmendenhall/forge-std": "^0.0.1",
-    "@nomiclabs/hardhat-ethers": "^2.0.5",
-    "@nomiclabs/hardhat-etherscan": "^3.0.3",
-    "@typechain/ethers-v5": "latest",
-    "@typechain/hardhat": "latest",
-    "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.2.0",
-    "hardhat": "^2.9.3",
-    "hardhat-deploy": "^0.10.4",
-    "hardhat-gas-reporter": "^1.0.7",
     "prettier": "^2.5.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.13",
-    "solhint": "^3.3.6",
-    "solidity-coverage": "^0.7.18",
-    "truffle-flattener": "^1.6.0",
-    "ts-node": "^10.4.0",
-    "typechain": "^8.0.0",
-    "typescript": "^4.5.5"
+    "prettier-plugin-solidity": "^1.0.0-beta.13"
   },
   "dependencies": {
     "@openzeppelin/contracts": "latest",
     "@uniswap/v2-periphery": "^1.1.0-beta.0"
   },
   "scripts": {
-    "deploy": "hardhat deploy",
-    "compile": "hardhat compile",
-    "chain": "hardhat node --network hardhat --no-deploy",
-    "forge": "forge test",
-    "test": "hardhat test --network hardhat",
-    "coverage": "hardhat coverage --network hardhat",
-    "coverage:ci": "hardhat coverage --network hardhat && mkdir -p ../../.reports/smart-contracts && cp -r ./coverage ../../.reports/smart-contracts",
-    "verify": "hardhat etherscan-verify",
-    "solhint": "solhint contracts/**/*.sol",
-    "export-abi": "hardhat export"
+    "forge": "forge test"
   }
 }
