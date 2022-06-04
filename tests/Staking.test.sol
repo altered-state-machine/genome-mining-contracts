@@ -9,7 +9,10 @@ import "../contracts/EnergyStorage.sol";
 import "../contracts/Controller.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
+import "../contracts/helpers/IConverter.sol";
 
+import "../contracts/Converter.sol";
+import "../contracts/EnergyStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
 
 import "ds-test/Test.sol";
@@ -19,7 +22,7 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM ASTO Time contract
  */
-contract StakingTestContract is DSTest, IStaking, Util {
+contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     Staking staker_;
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;

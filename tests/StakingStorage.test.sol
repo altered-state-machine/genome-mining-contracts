@@ -10,9 +10,10 @@ import "../contracts/StakingStorage.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/helpers/IStaking.sol";
+import "../contracts/helpers/IConverter.sol";
 
-// import "../contracts/Converter.sol";
-// import "../contracts/ConverterStorage.sol";
+import "../contracts/Converter.sol";
+import "../contracts/EnergyStorage.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -21,7 +22,7 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM Genome Mining - Staking contract
  */
-contract StakingStorageTestContract is DSTest, IStaking, Util {
+contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Staking staker_;
