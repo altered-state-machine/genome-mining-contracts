@@ -10,7 +10,7 @@ import "./EnergyStorage.sol";
 import "./helpers/PermissionControl.sol";
 import "./helpers/Util.sol";
 
-// import "forge-std/console.sol";
+import "forge-std/console.sol";
 
 /**
  * @dev ASM Genome Mining - Registry contract
@@ -62,10 +62,11 @@ contract Controller is Util, PermissionControl {
         stakingLogic_ = Staking(stakingLogic);
         converterLogic_ = Converter(converterLogic);
         energyStorage_ = EnergyStorage(energyStorage);
+        controller_ = Controller(this);
 
         // Initializing contracts
         _upgradeContracts(
-            address(0), // we skip this step, as contracts already have the Controller role set
+            address(this),
             astoToken,
             astoStorage,
             lpToken,
@@ -74,6 +75,14 @@ contract Controller is Util, PermissionControl {
             converterLogic,
             energyStorage
         );
+
+        // console.log("Manager", address(manager));
+        // console.log("Controller", address(controller_));
+        // console.log("Staker", address(stakingLogic_));
+        // console.log("ASTO Token", address(astoToken_));
+        // console.log("LP Token", address(lpToken_));
+        // console.log("ASTO Storage", address(astoStorage_));
+        // console.log("LP Storage", address(lpStorage_));
     }
 
     /** ----------------------------------
@@ -96,7 +105,6 @@ contract Controller is Util, PermissionControl {
         address converterLogic,
         address energyStorage
     ) internal {
-        if (_isContract(controller)) _setController(controller);
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);
@@ -104,6 +112,7 @@ contract Controller is Util, PermissionControl {
         if (_isContract(stakingLogic)) _setStakingLogic(stakingLogic);
         if (_isContract(energyStorage)) _setEnergyStorage(energyStorage);
         if (_isContract(converterLogic)) _setConverterLogic(converterLogic);
+        if (_isContract(controller)) _setController(controller);
     }
 
     function _setManager(address multisig) internal {
@@ -229,18 +238,12 @@ contract Controller is Util, PermissionControl {
 
     function pause() external onlyRole(MANAGER_ROLE) {
         stakingLogic_.pause();
-        astoStorage_.pause();
-        lpStorage_.pause();
         converterLogic_.pause();
-        energyStorage_.pause();
     }
 
     function unpause() external onlyRole(MANAGER_ROLE) {
         stakingLogic_.unpause();
-        astoStorage_.unpause();
-        lpStorage_.unpause();
         converterLogic_.unpause();
-        energyStorage_.unpause();
     }
 
     /** ----------------------------------

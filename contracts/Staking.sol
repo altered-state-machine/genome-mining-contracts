@@ -19,7 +19,7 @@ import "./helpers/PermissionControl.sol";
 contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeERC20 for IERC20;
 
-    bool private initialized = false;
+    bool private _initialized = false;
 
     /**
      * `_token`:  tokenId => token contract address
@@ -88,7 +88,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         IERC20 lpToken,
         address lpStorage
     ) public onlyRole(CONTROLLER_ROLE) {
-        require(initialized == false, ALREADY_INITIALIZED);
+        require(_initialized == false, ALREADY_INITIALIZED);
 
         _token[0] = astoToken;
         _storage[0] = StakingStorage(astoStorage);
@@ -98,7 +98,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
         _updateRole(MANAGER_ROLE, manager);
         _unpause();
-        initialized = true;
+        _initialized = true;
     }
 
     /**

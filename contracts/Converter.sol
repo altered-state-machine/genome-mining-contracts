@@ -22,7 +22,7 @@ import "./helpers/PermissionControl.sol";
 contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeMath for uint256;
 
-    bool private initialized = false;
+    bool private _initialized = false;
 
     uint256 public periodIdCounter = 0;
     // PeriodId start from 1
@@ -34,11 +34,10 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
-    constructor(address controller, Period[] memory _periods) {
+    constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(USER_ROLE, controller);
-        _initPeriods(_periods);
         _pause();
     }
 
@@ -122,7 +121,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         address addr,
         uint256 periodId,
         uint256 amount
-    ) external onlyRole(USER_ROLE) {
+    ) external whenNotPaused onlyRole(USER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
@@ -257,7 +256,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         address energyStorage,
         address stakingLogic
     ) external onlyRole(CONTROLLER_ROLE) {
-        require(!initialized, "The contract has already been initialized.");
+        if (_initialized) revert ContractError(ALREADY_INITIALIZED);
 
         if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
         if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
@@ -267,7 +266,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
 
         _grantRole(MANAGER_ROLE, manager);
         _unpause();
-        initialized = true;
+        _initialized = true;
     }
 
     /**

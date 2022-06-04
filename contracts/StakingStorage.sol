@@ -106,12 +106,4 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
-
-    function pause() external onlyRole(CONTROLLER_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(CONTROLLER_ROLE) {
-        _unpause();
-    }
 }
