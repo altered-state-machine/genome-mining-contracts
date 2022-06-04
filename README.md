@@ -27,6 +27,7 @@ Steps:
    5. stakingLogic,
    6. converterLogic,
    7. converterStorage
+6. Converter.sol - call `addPerido(..)` and setup periods
 
 example:
 
@@ -52,6 +53,8 @@ function setupContracts() internal {
     address(converter_),
     address(converterStorage_)
   );
+
+  converter_.addPeriod(...);
 }
 ```
 
