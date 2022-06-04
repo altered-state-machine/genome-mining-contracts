@@ -199,6 +199,8 @@ contract Controller is Util, PermissionControl {
 
     function setManager(address multisig) external onlyRole(MANAGER_ROLE) {
         _setManager(multisig);
+        stakingLogic_.setManager(multisig);
+        converterLogic_.setManager(multisig);
     }
 
     function setController(address newContract) external onlyRole(MANAGER_ROLE) {

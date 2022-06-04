@@ -30,21 +30,9 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
         _pause();
     }
 
-    /**
-     * @dev Setting up persmissions for this contract:
-     * @dev only Staker is allowed to save into this storage
-     * @dev only Controller is allowed to update permissions - to reduce amount of DAO votings
-     * @dev
-     *
-     * @param controller Controller contract address
-     * @param stakingLogic Staking contract address
-     */
-    function init(address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
-        require(_initialized == false, ALREADY_INITIALIZED);
-        _updateRole(STAKER_ROLE, stakingLogic);
-        _unpause();
-        _initialized = true;
-    }
+    /** ----------------------------------
+     * ! Business logic
+     * ----------------------------------- */
 
     /**
      * @notice Saving stakes into storage.
@@ -96,8 +84,25 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     }
 
     /** ----------------------------------
-     * ! Controls
+     * ! Administration       | CONTROLLER
      * ----------------------------------- */
+
+    /**
+     * @dev Setting up persmissions for this contract:
+     * @dev only Staker is allowed to save into this storage
+     * @dev only Controller is allowed to update permissions - to reduce amount of DAO votings
+     * @dev
+     *
+     * @param controller Controller contract address
+     * @param stakingLogic Staking contract address
+     */
+    function init(address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
+        require(_initialized == false, ALREADY_INITIALIZED);
+        _updateRole(STAKER_ROLE, stakingLogic);
+        _unpause();
+        _initialized = true;
+    }
+
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
