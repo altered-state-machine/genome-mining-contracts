@@ -19,7 +19,7 @@ import "./helpers/PermissionControl.sol";
 contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeERC20 for IERC20;
 
-    bool private initialized = false;
+    bool private _initialized = false;
 
     /**
      * `_token`:  tokenId => token contract address
@@ -27,7 +27,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * `_storage`:  tokenId => storage contract address
      * `_totalStakedAmount`:  tokenId => total staked amount for that tokenId
      *
-     * IDs: 0 for ASTO, 1 for LP tokens
+     * IDs: 0 for ASTO, 1 for LP tokens, see `init()` below
      */
     mapping(uint256 => IERC20) private _token;
     mapping(uint256 => string) private _tokenName;
@@ -42,12 +42,8 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Admin functions
+     * ! Administration          | MANAGER
      * ----------------------------------- */
-
-    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
-    }
 
     /**
      * @notice Withdraw tokens left in the contract to specified address
@@ -71,13 +67,9 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         _token[tokenId].safeTransfer(recipient, amount);
     }
 
-    function pause() external onlyRole(CONTROLLER_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(CONTROLLER_ROLE) {
-        _unpause();
-    }
+    /** ----------------------------------
+     * ! Administration       | CONTROLLER
+     * ----------------------------------- */
 
     /**
      * @dev Setting up persmissions for this contract:
@@ -96,7 +88,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         IERC20 lpToken,
         address lpStorage
     ) public onlyRole(CONTROLLER_ROLE) {
-        require(initialized == false, ALREADY_INITIALIZED);
+        require(_initialized == false, ALREADY_INITIALIZED);
 
         _token[0] = astoToken;
         _storage[0] = StakingStorage(astoStorage);
@@ -106,7 +98,27 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
         _updateRole(MANAGER_ROLE, manager);
         _unpause();
-        initialized = true;
+        _initialized = true;
+    }
+
+    /**
+     * @dev Update the manager contract address
+     * @dev only manager is allowed to call this function
+     */
+    function setManager(address newManager) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(MANAGER_ROLE, newManager);
+    }
+
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    function pause() external onlyRole(CONTROLLER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(CONTROLLER_ROLE) {
+        _unpause();
     }
 
     /** ----------------------------------
@@ -114,12 +126,22 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * ----------------------------------- */
 
     /**
+     * @notice Save user's stake
+     *
      * @notice Staking is a process of locking your tokens in this contract.
      * @notice Details of the stake are to be stored and used for calculations
      * @notice what time your tokens are stay staked.
-     * @notice You can always unlock your token. See `unstake()`.
      *
-     * @dev Emit `Staked` event when successful, with address, timestamp, amount
+     * @dev Prerequisite:
+     * @dev - amount of tokens to stake should be approved by user.
+     * @dev - this contract should have a `STAKER_ROLE` to call
+     * @dev   the storage's `updateHistory()` function.
+     *
+     * @dev Depending on tokenId passed, it:
+     * @dev 1. transfers tokens from user to this contract
+     * @dev 2. calls an appropriate token storage and saves time and amount of stake.
+     *
+     * @dev Emit `UnStaked` event on success: with token name, user address, timestamp, amount
      *
      * @param tokenId - ID of token to stake
      * @param amount - amount of tokens to stake
@@ -139,10 +161,14 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
     }
 
     /**
-     * @notice
-     * @notice
+     * @notice Unstake user's stake
      *
-     * @dev Emit `UnStaked` event when successful, with address, timestamp, amount
+     * @notice Unstaking is a process of getting back previously staked tokens.
+     * @notice Users can unlock their tokens any time.
+     *
+     * @dev No prerequisites
+     * @dev Users can unstake only their own, previously staked  tokens
+     * @dev Emit `UnStaked` event on success: with token name, user address, timestamp, amount
      *
      * @param tokenId - ID of token to stake
      * @param amount - amount of tokens to stake
@@ -168,7 +194,8 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
 
     /**
      * @notice Returns the total amount of tokens staked by all users
-     * @param tokenId ASTO/LBA/LP
+     *
+     * @param tokenId ASTO - 0, LP - 1
      * @return amount of tokens staked in the contract, uint256
      */
     function getTotalValueLocked(uint256 tokenId) external view returns (uint256) {
@@ -179,14 +206,35 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * ! Getters
      * ----------------------------------- */
 
+    /**
+     * @notice Returns address of the token storage contract
+     *
+     * @param tokenId ASTO - 0, LP - 1
+     * @return address of the token storage contract
+     */
     function getStorageAddress(uint256 tokenId) public view returns (address) {
         return address(_storage[tokenId]);
     }
 
+    /**
+     * @notice Returns address of the token contract
+     *
+     * @param tokenId ASTO - 0, LP - 1
+     * @return address of the token contract
+     */
     function getTokenAddress(uint256 tokenId) public view returns (address) {
         return address(_token[tokenId]);
     }
 
+    /**
+     * @notice Returns the staking history of user
+     *
+     * @param tokenId ASTO - 0, LP - 1
+     * @param addr user wallet address
+     * @param endTime until what time tokens were staked
+     * @return sorted list of stakes, for each stake: { time, amount },
+     *         starting with earliest
+     */
     function getHistory(
         uint256 tokenId,
         address addr,

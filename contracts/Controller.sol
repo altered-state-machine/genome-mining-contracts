@@ -60,10 +60,11 @@ contract Controller is Util, PermissionControl {
         stakingLogic_ = Staking(stakingLogic);
         converterLogic_ = Converter(converterLogic);
         energyStorage_ = EnergyStorage(energyStorage);
+        controller_ = Controller(this);
 
         // Initializing contracts
         _upgradeContracts(
-            address(0), // we skip this step, as contracts already have the Controller role set
+            address(this),
             astoToken,
             astoStorage,
             lpToken,
@@ -94,7 +95,6 @@ contract Controller is Util, PermissionControl {
         address converterLogic,
         address energyStorage
     ) internal {
-        if (_isContract(controller)) _setController(controller);
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);
@@ -102,6 +102,7 @@ contract Controller is Util, PermissionControl {
         if (_isContract(stakingLogic)) _setStakingLogic(stakingLogic);
         if (_isContract(energyStorage)) _setEnergyStorage(energyStorage);
         if (_isContract(converterLogic)) _setConverterLogic(converterLogic);
+        if (_isContract(controller)) _setController(controller);
     }
 
     function _setManager(address multisig) internal {
@@ -197,6 +198,8 @@ contract Controller is Util, PermissionControl {
 
     function setManager(address multisig) external onlyRole(MANAGER_ROLE) {
         _setManager(multisig);
+        stakingLogic_.setManager(multisig);
+        converterLogic_.setManager(multisig);
     }
 
     function setController(address newContract) external onlyRole(MANAGER_ROLE) {
@@ -225,18 +228,12 @@ contract Controller is Util, PermissionControl {
 
     function pause() external onlyRole(MANAGER_ROLE) {
         stakingLogic_.pause();
-        astoStorage_.pause();
-        lpStorage_.pause();
         converterLogic_.pause();
-        energyStorage_.pause();
     }
 
     function unpause() external onlyRole(MANAGER_ROLE) {
         stakingLogic_.unpause();
-        astoStorage_.unpause();
-        lpStorage_.unpause();
         converterLogic_.unpause();
-        energyStorage_.unpause();
     }
 
     /** ----------------------------------

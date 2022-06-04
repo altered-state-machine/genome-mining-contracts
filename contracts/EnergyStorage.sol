@@ -13,7 +13,7 @@ import "./helpers/PermissionControl.sol";
  * This contract will be called from Converter logic contract (Converter.sol)
  */
 contract EnergyStorage is Util, Pausable, PermissionControl {
-    bool private initialized = false;
+    bool private _initialized = false;
     mapping(address => uint256) public consumedAmount;
 
     constructor(address controller) {
@@ -31,10 +31,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      */
     function increaseConsumedAmount(address addr, uint256 amount) external whenNotPaused onlyRole(CONVERTER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-
         consumedAmount[addr] += amount;
-
-        // TODO emit event
     }
 
     /** ----------------------------------
@@ -48,11 +45,12 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      * @param converterLogic Converter logic contract address
      */
     function init(address converterLogic) external onlyRole(CONTROLLER_ROLE) {
-        require(initialized == false, ALREADY_INITIALIZED);
+        if (_initialized) revert ContractError(ALREADY_INITIALIZED);
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
         _setupRole(CONVERTER_ROLE, converterLogic);
         _unpause();
+        _initialized = true;
     }
 
     /**

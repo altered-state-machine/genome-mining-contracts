@@ -22,7 +22,7 @@ import "./helpers/PermissionControl.sol";
 contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionControl, Pausable {
     using SafeMath for uint256;
 
-    bool private initialized = false;
+    bool private _initialized = false;
 
     uint256 public periodIdCounter = 0;
     // PeriodId start from 1
@@ -34,11 +34,12 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
-    constructor(address controller, Period[] memory _periods) {
+    event EnergyUsed(address addr, uint256 amount);
+
+    constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(USER_ROLE, controller);
-        _initPeriods(_periods);
         _pause();
     }
 
@@ -122,12 +123,14 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         address addr,
         uint256 periodId,
         uint256 amount
-    ) external onlyRole(USER_ROLE) {
+    ) external whenNotPaused onlyRole(USER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
         energyStorage_.increaseConsumedAmount(addr, amount);
+
+        emit EnergyUsed(addr, amount);
     }
 
     /** ----------------------------------
@@ -181,33 +184,11 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     }
 
     /** ----------------------------------
-     * ! Admin functions
+     * ! Administration          | MANAGER
      * ----------------------------------- */
 
-    /**
-     * @dev Initialize the contract:
-     * @dev only controller is allowed to call this function
-     *
-     * @param manager The manager contract address
-     * @param energyStorage The energy storage contract address
-     * @param stakingLogic The staking logic contrct address
-     */
-    function init(
-        address manager,
-        address energyStorage,
-        address stakingLogic
-    ) external onlyRole(CONTROLLER_ROLE) {
-        require(initialized == false, ALREADY_INITIALIZED);
-
-        if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
-        if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
-
-        stakingLogic_ = Staking(stakingLogic);
-        energyStorage_ = EnergyStorage(energyStorage);
-
-        _grantRole(MANAGER_ROLE, manager);
-        _unpause();
-        initialized = true;
+    function setUser(address addr) external onlyRole(MANAGER_ROLE) {
+        _updateRole(USER_ROLE, addr);
     }
 
     /**
@@ -263,11 +244,41 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     }
 
     /** ----------------------------------
-     * ! Behaviour control functions
+     * ! Administration       | CONTROLLER
      * ----------------------------------- */
 
-    function setUser(address addr) external onlyRole(MANAGER_ROLE) {
-        _updateRole(USER_ROLE, addr);
+    /**
+     * @dev Initialize the contract:
+     * @dev only controller is allowed to call this function
+     *
+     * @param manager The manager contract address
+     * @param energyStorage The energy storage contract address
+     * @param stakingLogic The staking logic contrct address
+     */
+    function init(
+        address manager,
+        address energyStorage,
+        address stakingLogic
+    ) external onlyRole(CONTROLLER_ROLE) {
+        if (_initialized) revert ContractError(ALREADY_INITIALIZED);
+
+        if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
+        if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
+
+        stakingLogic_ = Staking(stakingLogic);
+        energyStorage_ = EnergyStorage(energyStorage);
+
+        _grantRole(MANAGER_ROLE, manager);
+        _unpause();
+        _initialized = true;
+    }
+
+    /**
+     * @dev Update the manager contract address
+     * @dev only manager is allowed to call this function
+     */
+    function setManager(address newManager) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(MANAGER_ROLE, newManager);
     }
 
     /**
@@ -276,14 +287,6 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
-    }
-
-    /**
-     * @dev Update the manager contract address
-     * @dev only manager is allowed to call this function
-     */
-    function setManager(address newManager) external onlyRole(MANAGER_ROLE) {
-        _updateRole(MANAGER_ROLE, newManager);
     }
 
     /**
