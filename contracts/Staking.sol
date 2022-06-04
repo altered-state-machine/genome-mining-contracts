@@ -27,7 +27,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * `_storage`:  tokenId => storage contract address
      * `_totalStakedAmount`:  tokenId => total staked amount for that tokenId
      *
-     * IDs: 0 for ASTO, 1 for LP tokens
+     * IDs: 0 for ASTO, 1 for LP tokens, see `init()` below
      */
     mapping(uint256 => IERC20) private _token;
     mapping(uint256 => string) private _tokenName;

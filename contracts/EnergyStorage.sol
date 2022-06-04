@@ -31,10 +31,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      */
     function increaseConsumedAmount(address addr, uint256 amount) external whenNotPaused onlyRole(CONVERTER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-
         consumedAmount[addr] += amount;
-
-        // TODO emit event
     }
 
     /** ----------------------------------

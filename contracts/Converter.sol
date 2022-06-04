@@ -34,6 +34,8 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
+    event EnergyUsed(address addr, uint256 amount);
+
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
@@ -127,6 +129,8 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
         energyStorage_.increaseConsumedAmount(addr, amount);
+
+        emit EnergyUsed(addr, amount);
     }
 
     /** ----------------------------------
