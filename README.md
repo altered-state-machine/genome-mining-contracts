@@ -27,7 +27,7 @@ Steps:
    5. stakingLogic,
    6. converterLogic,
    7. converterStorage
-6. Converter.sol - call `addPerido(..)` and setup periods
+6. Converter.sol - call `addPeriod(..)` to setup period
 
 example:
 
