@@ -96,14 +96,14 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param controller Controller contract address
      * @param stakingLogic Staking contract address
      */
-    function init(address stakingLogic) public onlyRole(CONTROLLER_ROLE) {
+    function init(address stakingLogic) external onlyRole(CONTROLLER_ROLE) {
         require(_initialized == false, ALREADY_INITIALIZED);
         _updateRole(STAKER_ROLE, stakingLogic);
         _unpause();
         _initialized = true;
     }
 
-    function setController(address newController) public onlyRole(CONTROLLER_ROLE) {
+    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
 }

@@ -19,7 +19,7 @@ import "./helpers/PermissionControl.sol";
  * Energy is calculated based on the token staking history from staking contract and multipliers pre-defined for ASTO and LP tokens.
  * Eenrgy can be consumed on multiple purposes.
  */
-contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionControl, Pausable {
+contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     using SafeMath for uint256;
 
     bool private _initialized = false;
@@ -153,7 +153,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      *
      * @return current period data
      */
-    function getCurrentPeriod() external view returns (Period memory) {
+    function getCurrentPeriod() public view returns (Period memory) {
         return periods[getCurrentPeriodId()];
     }
 
@@ -194,7 +194,8 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
     /**
      * @dev Initialize pre-defined periods
      */
-    function _initPeriods(Period[] memory _periods) internal {
+
+    function addPeriods(Period[] memory _periods) public onlyRole(MANAGER_ROLE) {
         for (uint256 i = 0; i < _periods.length; i++) {
             _addPeriod(_periods[i]);
         }
@@ -206,7 +207,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      *
      * @param period The period instance to add
      */
-    function _addPeriod(Period memory period) internal {
+    function _addPeriod(Period memory period) private {
         periods[++periodIdCounter] = period;
     }
 
@@ -227,7 +228,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function _updatePeriod(uint256 periodId, Period memory period) internal {
+    function _updatePeriod(uint256 periodId, Period memory period) private {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         periods[periodId] = period;
     }
@@ -239,7 +240,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function updatePeriod(uint256 periodId, Period memory period) external whenNotPaused onlyRole(MANAGER_ROLE) {
+    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MANAGER_ROLE) {
         _updatePeriod(periodId, period);
     }
 
@@ -270,6 +271,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
 
         _grantRole(MANAGER_ROLE, manager);
         _unpause();
+
         _initialized = true;
     }
 

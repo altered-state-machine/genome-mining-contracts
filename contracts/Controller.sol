@@ -43,7 +43,7 @@ contract Controller is Util, PermissionControl {
         address stakingLogic,
         address converterLogic,
         address energyStorage
-    ) public onlyRole(MANAGER_ROLE) {
+    ) external onlyRole(MANAGER_ROLE) {
         if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
         if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
         if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
@@ -94,7 +94,7 @@ contract Controller is Util, PermissionControl {
         address stakingLogic,
         address converterLogic,
         address energyStorage
-    ) internal {
+    ) private {
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);

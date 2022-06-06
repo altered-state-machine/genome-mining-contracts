@@ -16,7 +16,7 @@ import "./helpers/PermissionControl.sol";
  * @dev ASM Genome Mining - Staking Logic contract
  */
 
-contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
+contract Staking is IStaking, Util, PermissionControl, Pausable {
     using SafeERC20 for IERC20;
 
     bool private _initialized = false;
@@ -56,7 +56,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         address recipient,
         uint256 amount
     )
-        public
+        external
         whenPaused // when contract is paused ONLY
         onlyRole(MANAGER_ROLE)
     {
@@ -87,7 +87,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         address astoStorage,
         IERC20 lpToken,
         address lpStorage
-    ) public onlyRole(CONTROLLER_ROLE) {
+    ) external onlyRole(CONTROLLER_ROLE) {
         require(_initialized == false, ALREADY_INITIALIZED);
 
         _token[0] = astoToken;
