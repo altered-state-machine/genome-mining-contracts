@@ -56,11 +56,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * ! Getters
      * ----------------------------------- */
 
-    function getStake(address addr, uint256 id) public view returns (Stake memory) {
-        return _stakeHistory[addr][id];
-    }
-
-    function getHistory(address addr, uint256 endTime) public view returns (Stake[] memory) {
+    function getHistory(address addr, uint256 endTime) external view returns (Stake[] memory) {
         uint256 totalStakes = _stakeIds[addr];
 
         Stake[] memory stakes = new Stake[](totalStakes); // suboptimal - it could be larger than needed, when endTime is lesser than current time
@@ -79,7 +75,11 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
         return stakes;
     }
 
-    function getUserLastStakeId(address addr) public view returns (uint256) {
+    function getStake(address addr, uint256 id) external view returns (Stake memory) {
+        return _stakeHistory[addr][id];
+    }
+
+    function getUserLastStakeId(address addr) external view returns (uint256) {
         return _stakeIds[addr];
     }
 
@@ -103,7 +103,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
         _initialized = true;
     }
 
-    function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
+    function setController(address newController) public onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
 }

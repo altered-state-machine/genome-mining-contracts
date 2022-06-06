@@ -153,7 +153,7 @@ contract Converter is IConverter, IStaking, TimeConstants, Util, PermissionContr
      *
      * @return current period data
      */
-    function getCurrentPeriod() public view returns (Period memory) {
+    function getCurrentPeriod() external view returns (Period memory) {
         return periods[getCurrentPeriodId()];
     }
 

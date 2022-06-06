@@ -212,7 +212,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param tokenId ASTO - 0, LP - 1
      * @return address of the token storage contract
      */
-    function getStorageAddress(uint256 tokenId) public view returns (address) {
+    function getStorageAddress(uint256 tokenId) external view returns (address) {
         return address(_storage[tokenId]);
     }
 
@@ -222,7 +222,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
      * @param tokenId ASTO - 0, LP - 1
      * @return address of the token contract
      */
-    function getTokenAddress(uint256 tokenId) public view returns (address) {
+    function getTokenAddress(uint256 tokenId) external view returns (address) {
         return address(_token[tokenId]);
     }
 
@@ -239,7 +239,7 @@ contract Staking is IStaking, TimeConstants, Util, PermissionControl, Pausable {
         uint256 tokenId,
         address addr,
         uint256 endTime
-    ) public view returns (Stake[] memory) {
+    ) external view returns (Stake[] memory) {
         return _storage[tokenId].getHistory(addr, endTime);
     }
 }
