@@ -16,22 +16,22 @@ import "./helpers/Util.sol";
  * @notice when we need to update some of them.
  */
 contract Controller is Util, PermissionControl {
-    Controller public controller_;
-    Staking public stakingLogic_;
-    StakingStorage public astoStorage_;
-    StakingStorage public lpStorage_;
-    Converter public converterLogic_;
-    EnergyStorage public energyStorage_;
-    IERC20 public astoToken_;
-    IERC20 public lpToken_;
+    Controller private _controller;
+    Staking private _stakingLogic;
+    StakingStorage private _astoStorage;
+    StakingStorage private _lpStorage;
+    Converter private _converterLogic;
+    EnergyStorage private _energyStorage;
+    IERC20 private _astoToken;
+    IERC20 private _lpToken;
 
-    address public manager; // DAO multisig contract, public for auto getter
+    address private _manager; // DAO multisig contract, public for auto getter
 
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
     constructor(address multisig) {
         if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
-        manager = multisig;
+        _manager = multisig;
         _setupRole(MANAGER_ROLE, multisig); // `RoleGranted` event will be emitted
     }
 
@@ -43,7 +43,7 @@ contract Controller is Util, PermissionControl {
         address stakingLogic,
         address converterLogic,
         address energyStorage
-    ) public onlyRole(MANAGER_ROLE) {
+    ) external onlyRole(MANAGER_ROLE) {
         if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
         if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
         if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
@@ -53,14 +53,14 @@ contract Controller is Util, PermissionControl {
         if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
 
         // Saving addresses on init:
-        astoToken_ = IERC20(astoToken);
-        astoStorage_ = StakingStorage(astoStorage);
-        lpToken_ = IERC20(lpToken);
-        lpStorage_ = StakingStorage(lpStorage);
-        stakingLogic_ = Staking(stakingLogic);
-        converterLogic_ = Converter(converterLogic);
-        energyStorage_ = EnergyStorage(energyStorage);
-        controller_ = Controller(this);
+        _astoToken = IERC20(astoToken);
+        _astoStorage = StakingStorage(astoStorage);
+        _lpToken = IERC20(lpToken);
+        _lpStorage = StakingStorage(lpStorage);
+        _stakingLogic = Staking(stakingLogic);
+        _converterLogic = Converter(converterLogic);
+        _energyStorage = EnergyStorage(energyStorage);
+        _controller = Controller(this);
 
         // Initializing contracts
         _upgradeContracts(
@@ -76,7 +76,7 @@ contract Controller is Util, PermissionControl {
     }
 
     /** ----------------------------------
-     * ! Internal functions | Setters
+     * ! Private functions | Setters
      * ----------------------------------- */
 
     /**
@@ -94,7 +94,7 @@ contract Controller is Util, PermissionControl {
         address stakingLogic,
         address converterLogic,
         address energyStorage
-    ) internal {
+    ) private {
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);
@@ -105,63 +105,63 @@ contract Controller is Util, PermissionControl {
         if (_isContract(controller)) _setController(controller);
     }
 
-    function _setManager(address multisig) internal {
-        manager = multisig;
+    function _setManager(address multisig) private {
+        _manager = multisig;
         _updateRole(MANAGER_ROLE, multisig);
     }
 
-    function _setController(address newContract) internal {
-        stakingLogic_.setController(address(controller_));
-        astoStorage_.setController(address(controller_));
-        lpStorage_.setController(address(controller_));
-        converterLogic_.setController(address(controller_));
-        energyStorage_.setController(address(controller_));
+    function _setController(address newContract) private {
+        _stakingLogic.setController(address(_controller));
+        _astoStorage.setController(address(_controller));
+        _lpStorage.setController(address(_controller));
+        _converterLogic.setController(address(_controller));
+        _energyStorage.setController(address(_controller));
         emit ContractUpgraded(block.timestamp, "Controller", address(this), newContract);
     }
 
-    function _setStakingLogic(address newContract) internal {
-        stakingLogic_ = Staking(newContract);
-        stakingLogic_.init(
-            address(manager),
-            IERC20(astoToken_),
-            address(astoStorage_),
-            IERC20(lpToken_),
-            address(lpStorage_)
+    function _setStakingLogic(address newContract) private {
+        _stakingLogic = Staking(newContract);
+        _stakingLogic.init(
+            address(_manager),
+            IERC20(_astoToken),
+            address(_astoStorage),
+            IERC20(_lpToken),
+            address(_lpStorage)
         );
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
-    function _setAstoToken(address newContract) internal {
-        astoToken_ = IERC20(newContract);
+    function _setAstoToken(address newContract) private {
+        _astoToken = IERC20(newContract);
         emit ContractUpgraded(block.timestamp, "ASTO Token", address(this), newContract);
     }
 
-    function _setAstoStorage(address newContract) internal {
-        astoStorage_ = StakingStorage(newContract);
-        astoStorage_.init(address(stakingLogic_));
+    function _setAstoStorage(address newContract) private {
+        _astoStorage = StakingStorage(newContract);
+        _astoStorage.init(address(_stakingLogic));
         emit ContractUpgraded(block.timestamp, "ASTO Staking Storage", address(this), newContract);
     }
 
-    function _setLpToken(address newContract) internal {
-        lpToken_ = IERC20(newContract);
+    function _setLpToken(address newContract) private {
+        _lpToken = IERC20(newContract);
         emit ContractUpgraded(block.timestamp, "LP Token", address(this), newContract);
     }
 
-    function _setLpStorage(address newContract) internal {
-        lpStorage_ = StakingStorage(newContract);
-        lpStorage_.init(address(stakingLogic_));
+    function _setLpStorage(address newContract) private {
+        _lpStorage = StakingStorage(newContract);
+        _lpStorage.init(address(_stakingLogic));
         emit ContractUpgraded(block.timestamp, "LP Staking Storage", address(this), newContract);
     }
 
-    function _setConverterLogic(address newContract) internal {
-        converterLogic_ = Converter(newContract);
-        converterLogic_.init(address(manager), address(energyStorage_), address(stakingLogic_));
+    function _setConverterLogic(address newContract) private {
+        _converterLogic = Converter(newContract);
+        _converterLogic.init(address(_manager), address(_energyStorage), address(_stakingLogic));
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
-    function _setEnergyStorage(address newContract) internal {
-        energyStorage_ = EnergyStorage(newContract);
-        energyStorage_.init(address(converterLogic_));
+    function _setEnergyStorage(address newContract) private {
+        _energyStorage = EnergyStorage(newContract);
+        _energyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "Energy Storage", address(this), newContract);
     }
 
@@ -198,8 +198,8 @@ contract Controller is Util, PermissionControl {
 
     function setManager(address multisig) external onlyRole(MANAGER_ROLE) {
         _setManager(multisig);
-        stakingLogic_.setManager(multisig);
-        converterLogic_.setManager(multisig);
+        _stakingLogic.setManager(multisig);
+        _converterLogic.setManager(multisig);
     }
 
     function setController(address newContract) external onlyRole(MANAGER_ROLE) {
@@ -227,13 +227,13 @@ contract Controller is Util, PermissionControl {
     }
 
     function pause() external onlyRole(MANAGER_ROLE) {
-        stakingLogic_.pause();
-        converterLogic_.pause();
+        _stakingLogic.pause();
+        _converterLogic.pause();
     }
 
     function unpause() external onlyRole(MANAGER_ROLE) {
-        stakingLogic_.unpause();
-        converterLogic_.unpause();
+        _stakingLogic.unpause();
+        _converterLogic.unpause();
     }
 
     /** ----------------------------------
@@ -245,26 +245,26 @@ contract Controller is Util, PermissionControl {
     }
 
     function getManager() public view returns (address) {
-        return manager;
+        return _manager;
     }
 
     function getStakingLogic() public view returns (address) {
-        return address(stakingLogic_);
+        return address(_stakingLogic);
     }
 
     function getAstoStorage() public view returns (address) {
-        return address(astoStorage_);
+        return address(_astoStorage);
     }
 
     function getLpStorage() public view returns (address) {
-        return address(lpStorage_);
+        return address(_lpStorage);
     }
 
     function getConverterLogic() public view returns (address) {
-        return address(converterLogic_);
+        return address(_converterLogic);
     }
 
     function getEnergyStorage() public view returns (address) {
-        return address(energyStorage_);
+        return address(_energyStorage);
     }
 }
