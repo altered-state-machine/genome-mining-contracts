@@ -11,7 +11,7 @@ import "./helpers/PermissionControl.sol";
 import "./helpers/Util.sol";
 
 /**
- * @dev ASM Genome Mining - Registry contract
+ * @dev ASM Genome Mining - Controller contract
  * @notice We use this contract to manage contracts addresses
  * @notice when we need to update some of them.
  */
@@ -30,7 +30,7 @@ contract Controller is Util, PermissionControl {
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
     constructor(address multisig) {
-        if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
+        // if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
         _manager = multisig;
         _setupRole(MANAGER_ROLE, multisig); // `RoleGranted` event will be emitted
     }

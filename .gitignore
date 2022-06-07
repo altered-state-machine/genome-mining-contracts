@@ -126,6 +126,7 @@ coverage.json
 cache
 artifacts
 /gen
+/deployments
 
 # Foundry generated files
 /out
