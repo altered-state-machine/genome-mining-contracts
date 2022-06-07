@@ -8,8 +8,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { deployer, agent } = await getNamedAccounts();
 
 
-  const astoToken = await hre.deployments.get("ASTOToken");
-  const lpToken = await hre.deployments.get("LPToken");
+  // const astoToken = await hre.deployments.get("ASTOToken");
+  // const lpToken = await hre.deployments.get("LPToken");
+  const astoTokenAddress = '0xaeF0327c6726f6B44b56Bc7036cD4710f632b52E';
+  const lpTokenAddress = '0xaeF0327c6726f6B44b56Bc7036cD4710f632b52E';
   const astoStorage = await hre.deployments.get("ASTOStorage");
   const lpStorage = await hre.deployments.get("LPStorage");
   const energyStorage = await hre.deployments.get("EnergyStorage");
@@ -24,16 +26,22 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
   const res = await execute(
     "Controller",
-    { from: deployer, gasLimit: 10000000 },
-    "init",
-      astoTokenAddress, 
-      astoStorage.address, 
-      lpTokenAddress, 
-      lpStorage.address, 
-      staking.address, 
-      converter.address, 
-      energyStorage.address
+    { from: deployer },
+    "getManager"
   );
+
+  // const res = await execute(
+  //   "Controller",
+  //   { from: deployer, gasLimit: 10000000 },
+  //   "init",
+  //     astoTokenAddress, 
+  //     astoStorage.address, 
+  //     lpTokenAddress, 
+  //     lpStorage.address, 
+  //     staking.address, 
+  //     converter.address, 
+  //     energyStorage.address
+  // );
 
   // console.log("Adding period to ConverterTest contract...");
   // const startTime = 1654560000; // June 7, 2022 00:00:00 UTC
