@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Staking.sol";
 import "./StakingStorage.sol";
+import "./LBAEnergyConverter.sol";
 import "./Converter.sol";
 import "./EnergyStorage.sol";
 import "./helpers/PermissionControl.sol";
@@ -20,7 +21,8 @@ contract Controller is Util, PermissionControl {
     Staking private _stakingLogic;
     StakingStorage private _astoStorage;
     StakingStorage private _lpStorage;
-    Converter private _converterLogic;
+    Converter private _converter;
+    LBAEnergyConverter private _lbaConverter;
     EnergyStorage private _energyStorage;
     IERC20 private _astoToken;
     IERC20 private _lpToken;
@@ -41,7 +43,8 @@ contract Controller is Util, PermissionControl {
         address lpToken,
         address lpStorage,
         address stakingLogic,
-        address converterLogic,
+        address lbaConverter,
+        address converter,
         address energyStorage
     ) external onlyRole(MANAGER_ROLE) {
         if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
@@ -49,7 +52,8 @@ contract Controller is Util, PermissionControl {
         if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
         if (!_isContract(lpStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
         if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
-        if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        if (!_isContract(lbaConverter)) revert InvalidInput(INVALID_LBA_CONVERTER);
+        if (!_isContract(converter)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
         if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
 
         // Saving addresses on init:
@@ -58,7 +62,8 @@ contract Controller is Util, PermissionControl {
         _lpToken = IERC20(lpToken);
         _lpStorage = StakingStorage(lpStorage);
         _stakingLogic = Staking(stakingLogic);
-        _converterLogic = Converter(converterLogic);
+        _lbaConverter = LBAEnergyConverter(lbaConverter);
+        _converter = Converter(converter);
         _energyStorage = EnergyStorage(energyStorage);
         _controller = Controller(this);
 
@@ -70,7 +75,8 @@ contract Controller is Util, PermissionControl {
             lpToken,
             lpStorage,
             stakingLogic,
-            converterLogic,
+            lbaConverter,
+            converter,
             energyStorage
         );
     }
@@ -92,17 +98,19 @@ contract Controller is Util, PermissionControl {
         address lpToken,
         address lpStorage,
         address stakingLogic,
-        address converterLogic,
+        address lbaConverter,
+        address converter,
         address energyStorage
     ) private {
+        if (_isContract(controller)) _setController(controller);
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);
         if (_isContract(lpStorage)) _setLpStorage(lpStorage);
         if (_isContract(stakingLogic)) _setStakingLogic(stakingLogic);
+        if (_isContract(lbaConverter)) _setLbaConverter(lbaConverter);
         if (_isContract(energyStorage)) _setEnergyStorage(energyStorage);
-        if (_isContract(converterLogic)) _setConverterLogic(converterLogic);
-        if (_isContract(controller)) _setController(controller);
+        if (_isContract(converter)) _setConverter(converter);
     }
 
     function _setManager(address multisig) private {
@@ -111,15 +119,19 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setController(address newContract) private {
+        address oldContract = address(_controller);
         _stakingLogic.setController(address(_controller));
         _astoStorage.setController(address(_controller));
         _lpStorage.setController(address(_controller));
-        _converterLogic.setController(address(_controller));
+        _converter.setController(address(_controller));
         _energyStorage.setController(address(_controller));
-        emit ContractUpgraded(block.timestamp, "Controller", address(this), newContract);
+        _lbaConverter.setController(address(_controller));
+
+        emit ContractUpgraded(block.timestamp, "Controller", oldContract, newContract);
     }
 
     function _setStakingLogic(address newContract) private {
+        address oldContract = address(_stakingLogic);
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
             address(_manager),
@@ -128,41 +140,54 @@ contract Controller is Util, PermissionControl {
             IERC20(_lpToken),
             address(_lpStorage)
         );
-        emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
+        emit ContractUpgraded(block.timestamp, "Staking Logic", oldContract, newContract);
     }
 
     function _setAstoToken(address newContract) private {
+        address oldContract = address(_astoToken);
         _astoToken = IERC20(newContract);
-        emit ContractUpgraded(block.timestamp, "ASTO Token", address(this), newContract);
+        emit ContractUpgraded(block.timestamp, "ASTO Token", oldContract, newContract);
     }
 
     function _setAstoStorage(address newContract) private {
+        address oldContract = address(_astoStorage);
         _astoStorage = StakingStorage(newContract);
         _astoStorage.init(address(_stakingLogic));
-        emit ContractUpgraded(block.timestamp, "ASTO Staking Storage", address(this), newContract);
+        emit ContractUpgraded(block.timestamp, "ASTO Staking Storage", oldContract, newContract);
     }
 
     function _setLpToken(address newContract) private {
+        address oldContract = address(_lpToken);
         _lpToken = IERC20(newContract);
-        emit ContractUpgraded(block.timestamp, "LP Token", address(this), newContract);
+        emit ContractUpgraded(block.timestamp, "LP Token", oldContract, newContract);
     }
 
     function _setLpStorage(address newContract) private {
+        address oldContract = address(_lpStorage);
         _lpStorage = StakingStorage(newContract);
         _lpStorage.init(address(_stakingLogic));
-        emit ContractUpgraded(block.timestamp, "LP Staking Storage", address(this), newContract);
+        emit ContractUpgraded(block.timestamp, "LP Staking Storage", oldContract, newContract);
     }
 
-    function _setConverterLogic(address newContract) private {
-        _converterLogic = Converter(newContract);
-        _converterLogic.init(address(_manager), address(_energyStorage), address(_stakingLogic));
-        emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
+    function _setConverter(address newContract) private {
+        address oldContract = address(_converter);
+        _converter = Converter(newContract);
+        _converter.init(address(_manager), address(_energyStorage), address(_stakingLogic));
+        emit ContractUpgraded(block.timestamp, "Converter Logic", oldContract, newContract);
+    }
+
+    function _setLbaConverter(address newContract) private {
+        address oldContract = address(_lbaConverter);
+        _lbaConverter = LBAEnergyConverter(newContract);
+        _lbaConverter.init(address(_manager), address(_lbaConverter));
+        emit ContractUpgraded(block.timestamp, "LBA Converter Logic", oldContract, newContract);
     }
 
     function _setEnergyStorage(address newContract) private {
+        address oldContract = address(_energyStorage);
         _energyStorage = EnergyStorage(newContract);
-        _energyStorage.init(address(_converterLogic));
-        emit ContractUpgraded(block.timestamp, "Energy Storage", address(this), newContract);
+        _energyStorage.init(address(_converter));
+        emit ContractUpgraded(block.timestamp, "Energy Storage", oldContract, newContract);
     }
 
     /** ----------------------------------
@@ -181,7 +206,8 @@ contract Controller is Util, PermissionControl {
         address lpToken,
         address lpStorage,
         address stakingLogic,
-        address converterLogic,
+        address lbaConverter,
+        address converter,
         address energyStorage
     ) external onlyRole(MANAGER_ROLE) {
         _upgradeContracts(
@@ -191,7 +217,8 @@ contract Controller is Util, PermissionControl {
             lpToken,
             lpStorage,
             stakingLogic,
-            converterLogic,
+            lbaConverter,
+            converter,
             energyStorage
         );
     }
@@ -199,7 +226,7 @@ contract Controller is Util, PermissionControl {
     function setManager(address multisig) external onlyRole(MANAGER_ROLE) {
         _setManager(multisig);
         _stakingLogic.setManager(multisig);
-        _converterLogic.setManager(multisig);
+        _converter.setManager(multisig);
     }
 
     function setController(address newContract) external onlyRole(MANAGER_ROLE) {
@@ -218,8 +245,12 @@ contract Controller is Util, PermissionControl {
         _setLpStorage(newContract);
     }
 
-    function setConverterLogic(address newContract) external onlyRole(MANAGER_ROLE) {
-        _setConverterLogic(newContract);
+    function setConverter(address newContract) external onlyRole(MANAGER_ROLE) {
+        _setConverter(newContract);
+    }
+
+    function setLbaConverter(address newContract) external onlyRole(MANAGER_ROLE) {
+        _setLbaConverter(newContract);
     }
 
     function setEnergyStorage(address newContract) external onlyRole(MANAGER_ROLE) {
@@ -228,12 +259,12 @@ contract Controller is Util, PermissionControl {
 
     function pause() external onlyRole(MANAGER_ROLE) {
         _stakingLogic.pause();
-        _converterLogic.pause();
+        _converter.pause();
     }
 
     function unpause() external onlyRole(MANAGER_ROLE) {
         _stakingLogic.unpause();
-        _converterLogic.unpause();
+        _converter.unpause();
     }
 
     /** ----------------------------------
@@ -260,8 +291,12 @@ contract Controller is Util, PermissionControl {
         return address(_lpStorage);
     }
 
-    function getConverterLogic() public view returns (address) {
-        return address(_converterLogic);
+    function getConverter() public view returns (address) {
+        return address(_converter);
+    }
+
+    function getLbaConverter() public view returns (address) {
+        return address(_lbaConverter);
     }
 
     function getEnergyStorage() public view returns (address) {

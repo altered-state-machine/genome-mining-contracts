@@ -5,12 +5,12 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "../contracts/Staking.sol";
 import "../contracts/Converter.sol";
+import "../contracts/LBAEnergyConverter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/Controller.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/helpers/IConverter.sol";
-
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
@@ -27,6 +27,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Converter converter_;
+    LBAEnergyConverter lbaConverter_;
     EnergyStorage energyStorage_;
     Controller controller_;
     MockedERC20 astoToken_;
@@ -70,6 +71,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
+        lbaConverter_ = new LBAEnergyConverter(address(controller_));
         converter_ = new Converter(address(controller_));
         energyStorage_ = new EnergyStorage(address(controller_));
 
@@ -79,6 +81,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
+            address(lbaConverter_),
             address(converter_),
             address(energyStorage_)
         );

@@ -11,6 +11,7 @@ import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/helpers/IConverter.sol";
+import "../contracts/LBAEnergyConverter.sol";
 
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
@@ -27,6 +28,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     StakingStorage lpStorage_;
     Staking staker_;
     Converter converter_;
+    LBAEnergyConverter lbaConverter_;
     EnergyStorage energyStorage_;
     Controller controller_;
     MockedERC20 astoToken_;
@@ -69,6 +71,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
+        lbaConverter_ = new LBAEnergyConverter(address(controller_));
         converter_ = new Converter(address(controller_));
         energyStorage_ = new EnergyStorage(address(controller_));
 
@@ -78,6 +81,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
+            address(lbaConverter_),
             address(converter_),
             address(energyStorage_)
         );

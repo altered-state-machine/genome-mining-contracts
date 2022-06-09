@@ -7,6 +7,7 @@ pragma solidity ^0.8.13;
  */
 contract Util {
     error InvalidInput(string errMsg);
+    error CalculationsError(string errMsg);
     error ContractError(string errMsg);
 
     string constant ALREADY_INITIALIZED = "The contract has already been initialized";
@@ -15,6 +16,8 @@ contract Util {
     string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic contract";
     string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage contract";
     string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic contract";
+    string constant INVALID_LBA_CONVERTER = "Invalid LBA Converter Logic contract";
+    string constant INVALID_LBA_CONTRACT = "Invalid LBA contract";
     string constant INVALID_ENERGY_STORAGE = "Invalid Energy Storage contract";
     string constant INVALID_ASTO_CONTRACT = "Invalid ASTO contract";
     string constant INVALID_LP_CONTRACT = "Invalid LP contract";
@@ -25,6 +28,7 @@ contract Util {
     string constant INSUFFICIENT_BALANCE = "Insufficient token balance";
     string constant INSUFFICIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
     string constant NO_STAKES = "No stakes yet";
+    string constant NOT_ENOUGH_ENERGY = "Not enough energy";
 
     /**
      * @notice Among others, `isContract` will return false for the following
@@ -42,5 +46,9 @@ contract Util {
      */
     function _isContract(address addr) internal view returns (bool) {
         return addr.code.length > 0;
+    }
+
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
     }
 }

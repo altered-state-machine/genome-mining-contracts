@@ -133,6 +133,22 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         emit EnergyUsed(addr, amount);
     }
 
+    // function getEnergy(address _address) {
+    //     return stakingEnergy(_address) + LBAEnergyConverter.remainingLBAEnergy(_address);
+    // }
+
+    // function useEnergy(address _address, uint256 amount) {
+    //     // use LBA energy first
+    //     remainingLBAEnergy = LBAEnergyConverter.remainingLBAEnergy(_address);
+    //     lbaEnergyToSpend = min(amount, remainingLBAEnergy);
+
+    //     LBAEnergyConverter.useLBAEnergy(_address, lbaEnergyToSpend);
+
+    //     // rest of the energy spend
+    //     otherEnergy = amount - lbaEnergyToSpend;
+    //     usedEnergy[_address] = usedEnergy[_address] + amount;
+    // }
+
     /** ----------------------------------
      * ! Getters
      * ----------------------------------- */
@@ -254,7 +270,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param manager The manager contract address
      * @param energyStorage The energy storage contract address
-     * @param stakingLogic The staking logic contrct address
+     * @param stakingLogic The staking logic contract address
      */
     function init(
         address manager,
