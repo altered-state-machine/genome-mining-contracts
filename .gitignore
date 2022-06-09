@@ -129,4 +129,5 @@ artifacts
 
 # Foundry generated files
 /out
+/deployments
 

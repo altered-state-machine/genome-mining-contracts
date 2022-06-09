@@ -222,6 +222,26 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         assertEq(userBalanceBefore, userBalance, "userBalanceBefore == userBalance");
         assertEq(userBalanceAfter, userBalanceBefore - amount, "userBalanceAfter == userBalanceBefore - amount");
         assertEq(newStake.amount, amount, "newStake.amount == amount");
+
+        // We'll add another stake to be sure they are summed
+
+        logicBalanceBefore = astoToken_.balanceOf(address(staker_));
+        userBalanceBefore = astoToken_.balanceOf(someone);
+
+        astoToken_.approve(address(staker_), amount);
+        staker_.stake(astoToken, amount);
+
+        logicBalanceAfter = astoToken_.balanceOf(address(staker_));
+        userBalanceAfter = astoToken_.balanceOf(someone);
+        lastStakeId = astoStorage_.getUserLastStakeId(someone);
+        userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        newStake = astoStorage_.getStake(someone, userLastStakeId);
+
+        assertEq(lastStakeId, userLastStakeId, "lastStakeId == userLastStakeId");
+        assertEq(logicBalanceAfter, logicBalanceBefore + amount, "logicBalanceAfter == logicBalanceBefore + amount");
+        assertEq(userBalanceBefore, userBalance - amount, "userBalanceBefore == userBalance - amount from prev stake");
+        assertEq(userBalanceAfter, userBalanceBefore - amount, "userBalanceAfter == userBalanceBefore - amount");
+        assertEq(newStake.amount, amount * 2, "newStake.amount == 2*amount");
     }
 
     /**
