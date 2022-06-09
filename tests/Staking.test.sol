@@ -280,32 +280,70 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         vm.startPrank(someone);
         astoToken_.approve(address(staker_), amount); // this one initiated by UI
         staker_.stake(astoToken, amount);
-        uint256 logicBalanceBefore = astoToken_.balanceOf(address(staker_));
-        uint256 userBalanceBefore = astoToken_.balanceOf(someone);
+        uint256 tokenLogicBalanceBefore = astoToken_.balanceOf(address(staker_));
+        uint256 tokenUserBalanceBefore = astoToken_.balanceOf(someone);
 
         uint256 userLastStakeId = astoStorage_.getUserLastStakeId(someone);
-        Stake memory beforeUnstakeBalance = astoStorage_.getStake(someone, userLastStakeId);
+        Stake memory userBalanceBeforeUnstake = astoStorage_.getStake(someone, userLastStakeId);
 
-        staker_.unstake(astoToken, amount);
+        assertEq(tokenUserBalanceBefore, userBalance - amount, "User balance should be decresed after stake");
 
-        uint256 logicBalanceAfter = astoToken_.balanceOf(address(staker_));
-        uint256 userBalanceAfter = astoToken_.balanceOf(someone);
+        staker_.unstake(astoToken, amount / 2);
+
+        uint256 tokenLogicBalanceAfter = astoToken_.balanceOf(address(staker_));
+        uint256 tokenUserBalanceAfter = astoToken_.balanceOf(someone);
 
         userLastStakeId = astoStorage_.getUserLastStakeId(someone);
-        Stake memory afterUnstakeBalance = astoStorage_.getStake(someone, userLastStakeId);
+        Stake memory userBalanceAfterUnstake = astoStorage_.getStake(someone, userLastStakeId);
 
         // contract and user ASTO balances checks
-        assertEq(logicBalanceAfter, logicBalanceBefore - amount, "Contract balance decreased");
-        assertEq(userBalanceBefore, userBalance - amount, "User balance should be decresed after stake");
-        assertEq(userBalanceAfter, userBalance, "User balance should be restored after unstake");
-        assertEq(userBalanceAfter, userBalanceBefore + amount, "User balance = balance before unstake + amount");
-        // user STAKE balance check
+        assertEq(tokenLogicBalanceAfter, tokenLogicBalanceBefore - amount / 2, "Contract balance decreased");
+        assertEq(tokenUserBalanceAfter, userBalance - amount / 2, "User balance should be restored after unstake");
         assertEq(
-            afterUnstakeBalance.amount,
-            beforeUnstakeBalance.amount - amount,
+            tokenUserBalanceAfter,
+            tokenUserBalanceBefore + amount / 2,
+            "User balance = balance before unstake + amount/2"
+        );
+
+        // check user's STAKE balance
+        assertEq(
+            userBalanceAfterUnstake.amount,
+            userBalanceBeforeUnstake.amount - amount / 2,
             "User's stake balance should be decreased by amount"
         );
-        assertEq(afterUnstakeBalance.amount, 0, "User's stake balance should be 0");
+        assertEq(userBalanceAfterUnstake.amount, amount / 2, "User's stake balance should be 0");
+
+        // another unstake
+
+        tokenLogicBalanceBefore = astoToken_.balanceOf(address(staker_));
+        tokenUserBalanceBefore = astoToken_.balanceOf(someone);
+        userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        userBalanceBeforeUnstake = astoStorage_.getStake(someone, userLastStakeId);
+
+        staker_.unstake(astoToken, amount / 2);
+
+        tokenLogicBalanceAfter = astoToken_.balanceOf(address(staker_));
+        tokenUserBalanceAfter = astoToken_.balanceOf(someone);
+
+        userLastStakeId = astoStorage_.getUserLastStakeId(someone);
+        userBalanceAfterUnstake = astoStorage_.getStake(someone, userLastStakeId);
+
+        // contract and user ASTO balances checks
+        assertEq(tokenLogicBalanceAfter, tokenLogicBalanceBefore - amount / 2, "Contract balance decreased");
+        assertEq(tokenUserBalanceAfter, userBalance, "User balance should be restored after unstake");
+        assertEq(
+            tokenUserBalanceAfter,
+            tokenUserBalanceBefore + amount / 2,
+            "User balance = balance before unstake + amount/2"
+        );
+
+        // check user's STAKE balance
+        assertEq(
+            userBalanceAfterUnstake.amount,
+            userBalanceBeforeUnstake.amount - amount / 2,
+            "User's stake balance should be decreased by amount"
+        );
+        assertEq(userBalanceAfterUnstake.amount, 0, "User's stake balance should be 0");
     }
 
     /**
