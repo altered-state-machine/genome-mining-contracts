@@ -150,11 +150,15 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         if (tokenId > 1) revert InvalidInput(WRONG_TOKEN);
         if (amount == 0) revert InvalidInput(WRONG_AMOUNT);
         address user = msg.sender;
-        uint256 userBalance = _token[tokenId].balanceOf(user);
-        if (amount > userBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
+        uint256 tokenBalance = _token[tokenId].balanceOf(user);
+        if (amount > tokenBalance) revert InvalidInput(INSUFFICIENT_BALANCE);
 
         _token[tokenId].safeTransferFrom(user, address(this), amount);
-        _storage[tokenId].updateHistory(user, amount);
+
+        uint256 lastStakeId = _storage[tokenId].getUserLastStakeId(user);
+        uint256 stakeBalance = (_storage[tokenId].getStake(user, lastStakeId)).amount;
+        uint256 newAmount = stakeBalance + amount;
+        _storage[tokenId].updateHistory(user, newAmount);
         _totalStakedAmount[tokenId] += amount;
 
         emit Staked(_tokenName[tokenId], user, block.timestamp, amount);
