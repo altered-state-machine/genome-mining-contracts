@@ -179,7 +179,7 @@ contract Controller is Util, PermissionControl {
     function _setLbaConverter(address newContract) private {
         address oldContract = address(_lbaConverter);
         _lbaConverter = LBAEnergyConverter(newContract);
-        _lbaConverter.init(address(_manager), address(_lbaConverter));
+        _lbaConverter.init(address(_manager), address(_converter));
         emit ContractUpgraded(block.timestamp, "LBA Converter Logic", oldContract, newContract);
     }
 

@@ -8,6 +8,7 @@ import "../ILBA.sol";
 contract MockedLBA is ILBA, ERC20 {
     uint256 public lpTokenAmount;
     mapping(address => uint256) public lpClaimed;
+    uint256 private _claimableAmount = 1e12;
 
     constructor(string memory name, string memory symbol) payable ERC20(name, symbol) {}
 
@@ -15,20 +16,23 @@ contract MockedLBA is ILBA, ERC20 {
      * ! Helpers
      * ----------------------------------- */
 
-    function mintHelper(address account, uint256 amount) public {
+    function mint_helper(address account, uint256 amount) public {
         _mint(account, amount);
     }
 
-    function setLPClaimedHelper(address account, uint256 amount) public {
+    function setLPClaimableAmount_helper(uint256 amount) public {}
+
+    function setLPClaimed_helper(address account, uint256 amount) public {
         lpClaimed[account] = amount;
+        _claimableAmount = amount;
     }
 
     /** ----------------------------------
      * ! Original functions
      * ----------------------------------- */
 
-    function claimableLPAmount(address) public pure returns (uint256) {
-        return 1e12;
+    function claimableLPAmount(address) public view returns (uint256) {
+        return _claimableAmount;
     }
 
     function deposit(uint256, uint256) external {}

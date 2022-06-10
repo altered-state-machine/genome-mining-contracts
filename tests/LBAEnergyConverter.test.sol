@@ -15,7 +15,6 @@ import "../contracts/helpers/TimeConstants.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
-import "../contracts/mocks/MockedLBA.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -34,7 +33,6 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     Controller controller_;
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
-    MockedLBA lba_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -45,15 +43,16 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     uint256 userBalance = 10e18;
     uint256 astoToken = 0; // tokenId
 
+    ILBA lba_ = ILBA(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
 
     uint256 DAY = SECONDS_PER_DAY;
-    uint256 now = block.timestamp;
-    uint256 threeDaysAgo = now - DAY * 3;
-    uint256 twoDaysAgo = now - DAY * 2;
-    uint256 oneDayAgo = block.timestamp - DAY;
+    uint256 today = block.timestamp;
+    uint256 threeDaysAgo = today - 3 * DAY;
+    uint256 twoDaysAgo = today - 2 * DAY;
+    uint256 oneDayAgo = today - 1 * DAY;
 
     /** ----------------------------------
      * ! Setup
@@ -64,15 +63,16 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
+        vm.clearMockedCalls();
+
         setupTokens(); // mock tokens
         setupContracts(); // instantiate GM contracts
-        setupLBA(); // setup mocked LBA contract
+        mockCalls();
     }
 
     function setupTokens() internal {
         astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
         lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
-        lba_ = new MockedLBA("LBA LP test token", "LBAT");
     }
 
     function setupContracts() internal {
@@ -96,23 +96,8 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
         );
     }
 
-    function setupLBA() internal {}
-
-    /** ----------------------------------
-     * ! Mocked functions
-     * ----------------------------------- */
-
-    /**
-     * @notice GIVEN: LPs are not claimed yet
-     * @notice  WHEN: user calls this function
-     * @notice  THEN: energy amount is returned and not zero
-     */
-    function test_Mocked_functions_work_as_expected() public skip(false) {
-        uint256 lpAmount = lba_.claimableLPAmount(someone);
-        assertEq(lpAmount, 1e12, "Mocked function should return 1e12");
-
-        lba_.setLPClaimedHelper(someone, 1e10);
-        assertEq(lba_.lpClaimed(someone), 1e10, "After claim it should be 1e10");
+    function mockCalls() internal {
+        vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(1e12));
     }
 
     /** ----------------------------------
@@ -121,7 +106,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
 
     /**
      * @notice GIVEN: LPs are not claimed yet
-     * @notice  WHEN: user calls this function
+     * @notice  WHEN: two days passed
      * @notice  THEN: energy amount is returned and not zero
      */
     function test_getRemainingLBAEnergy_happy_path() public skip(false) {
@@ -131,31 +116,67 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     }
 
     /**
+     * @notice GIVEN: LPs are not claimed yet
+     * @notice  WHEN: less than a day passed
+     * @notice  THEN: energy amount is returned and not zero
+     */
+    function test_getRemainingLBAEnergy_not_enough_time_passed() public skip(false) {
+        vm.startPrank(address(someone));
+        uint256 SECOND = 1;
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, twoDaysAgo - 1 * SECOND);
+        assertEq(energy, 1e12 * 0, "Should be 0");
+    }
+
+    /**
      * @notice GIVEN: LPs are already claimed
      * @notice  WHEN: user calls this function
      * @notice  THEN: energy amount should be zero
      */
-
     function test_getRemainingLBAEnergy_already_claimed() public skip(false) {
         vm.startPrank(address(someone));
-        uint256 lpAmount = lba_.claimableLPAmount(someone);
-        assertEq(lpAmount, 1e12, "should be 1e12");
-
-        lba_.setLPClaimedHelper(someone, 1e10);
-        assertEq(lba_.lpClaimed(someone), 1e10, "should be 1e10");
+        vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(0));
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, oneDayAgo);
+        assertEq(energy, 0, "Should be 0");
     }
 
     /**
-     * @notice GIVEN:
-     * @notice  WHEN:
-     * @notice   AND:
-     * @notice   AND:
-     * @notice  THEN:
-     * @notice   AND:
+     * @notice GIVEN: user has an energy available
+     * @notice  WHEN: converter contract calls `useLBAEnergy()`
+     * @notice  THEN: should return the energy remaining after using
      */
+    function test_useLBAEnergy_happy_path() public skip(false) {
+        vm.startPrank(address(converter_));
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
+        assertEq(remainingEnergy, 15e11, "Should be  2e12 - 5e11 = 15e11 Ae");
 
-    function testAsdf() public skip(true) returns (bool) {
-        return false;
+        remainingEnergy = lbaConverter_.useLBAEnergy(someone, 10e11, threeDaysAgo, oneDayAgo);
+        assertEq(remainingEnergy, 5e11, "Should be  2e12 - 5e11 - 10e11 = 5e11 Ae");
+    }
+
+    /**
+     * @notice GIVEN: user has an energy available
+     * @notice  WHEN: NOT a converter contract calls `useLBAEnergy()`
+     * @notice  THEN: should revert with access violation error
+     */
+    function test_useLBAEnergy_not_a_converter() public skip(false) {
+        // vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(0));
+        vm.startPrank(address(someone));
+        vm.expectRevert(
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x1cf336fddcc7dc48127faf7a5b80ee54fce73ef647eecd31c24bb6cce3ac3eef"
+        );
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
+    }
+
+    /**
+     * @notice GIVEN: user has NOT ENOUGH energy available
+     * @notice  WHEN: a converter contract calls `useLBAEnergy()`
+     * @notice  THEN: should revert with access violation error
+     */
+    function test_useLBAEnergy_not_enough_energy() public skip(false) {
+        vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(0));
+        vm.startPrank(address(converter_));
+        vm.expectRevert(abi.encodeWithSelector(Util.CalculationsError.selector, NOT_ENOUGH_ENERGY));
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
     }
 
     /** ----------------------------------

@@ -4,6 +4,8 @@ pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ILBA {
+    function lpClaimed(address) external returns (uint256); // to emulate contract's mapping (the public one but without getter function)
+
     struct Timeline {
         uint256 auctionStartTime;
         uint256 astoDepositEndTime;

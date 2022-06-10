@@ -66,13 +66,14 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
         uint256 amount,
         uint256 startTime,
         uint256 endTime
-    ) public onlyRole(CONVERTER_ROLE) {
+    ) public onlyRole(CONVERTER_ROLE) returns (uint256) {
         uint256 usedEnergy = usedLBAEnergyPerUser[addr];
-        uint256 availableEnergy = _calculateAvailableEnergy(addr, startTime, endTime);
+        uint256 remainingEnergy = getRemainingLBAEnergy(addr, startTime, endTime);
 
-        if (availableEnergy - usedEnergy > availableEnergy) revert CalculationsError(NOT_ENOUGH_ENERGY);
+        if (remainingEnergy > 0) usedLBAEnergyPerUser[addr] = usedEnergy + amount;
+        else revert CalculationsError(NOT_ENOUGH_ENERGY);
 
-        usedLBAEnergyPerUser[addr] = usedEnergy + amount;
+        return remainingEnergy - amount;
     }
 
     /** ----------------------------------
@@ -99,7 +100,7 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
 
         if (!_isContract(converter)) revert ContractError(INVALID_ENERGY_STORAGE);
 
-        _grantRole(CONVERTER_ROLE, manager);
+        _grantRole(CONVERTER_ROLE, converter);
         _grantRole(MANAGER_ROLE, manager);
         _unpause();
 
