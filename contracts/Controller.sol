@@ -173,6 +173,7 @@ contract Controller is Util, PermissionControl {
         address oldContract = address(_converter);
         _converter = Converter(newContract);
         _converter.init(address(_manager), address(_energyStorage), address(_stakingLogic));
+        _lbaConverter.setConverter(newContract);
         emit ContractUpgraded(block.timestamp, "Converter Logic", oldContract, newContract);
     }
 

@@ -30,7 +30,6 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _lba = ILBA(lba);
         _grantRole(CONTROLLER_ROLE, controller);
-        _grantRole(USER_ROLE, controller);
         _grantRole(CONVERTER_ROLE, controller);
         _pause();
     }
@@ -77,14 +76,6 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Administration          | MANAGER
-     * ----------------------------------- */
-
-    function setUser(address addr) external onlyRole(MANAGER_ROLE) {
-        _updateRole(USER_ROLE, addr);
-    }
-
-    /** ----------------------------------
      * ! Administration       | CONTROLLER
      * ----------------------------------- */
 
@@ -108,11 +99,11 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
     }
 
     /**
-     * @dev Update the manager contract address
-     * @dev only manager is allowed to call this function
+     * @dev Update the Converter contract address
+     * @dev only controller is allowed to call this function
      */
-    function setManager(address newManager) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(MANAGER_ROLE, newManager);
+    function setConverter(address newConverter) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONVERTER_ROLE, newConverter);
     }
 
     /**
