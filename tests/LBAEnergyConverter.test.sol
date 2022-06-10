@@ -2,37 +2,39 @@
 
 pragma solidity ^0.8.13;
 
-import "../contracts/StakingStorage.sol";
-import "../contracts/mocks/MockedERC20.sol";
-import "../contracts/Controller.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "../contracts/Staking.sol";
-import "../contracts/StakingStorage.sol";
 import "../contracts/Converter.sol";
+import "../contracts/LBAEnergyConverter.sol";
 import "../contracts/EnergyStorage.sol";
+import "../contracts/Controller.sol";
+import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/helpers/IConverter.sol";
-import "../contracts/LBAEnergyConverter.sol";
-
+import "../contracts/helpers/TimeConstants.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
-import "../contracts/ILBA.sol";
+import "../contracts/mocks/MockedERC20.sol";
+import "../contracts/mocks/MockedLBA.sol";
+
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 
 /**
- * @dev Tests for the ASM Genome Mining - Staking contract
+ * @dev Tests for the ASM ASTO Time contract
  */
-contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
+contract LBAEnergyConverterTestContract is DSTest, Util {
+    Staking staker_;
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
-    Staking staker_;
     Converter converter_;
     LBAEnergyConverter lbaConverter_;
     EnergyStorage energyStorage_;
     Controller controller_;
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
+    MockedLBA lba_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -41,11 +43,17 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     uint256 amount = 1_234_567_890_000_000_000; // 1.23456789 ASTO
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
+    uint256 astoToken = 0; // tokenId
 
-    ILBA lba = ILBA(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+
+    uint256 DAY = SECONDS_PER_DAY;
+    uint256 now = block.timestamp;
+    uint256 threeDaysAgo = now - DAY * 3;
+    uint256 twoDaysAgo = now - DAY * 2;
+    uint256 oneDayAgo = block.timestamp - DAY;
 
     /** ----------------------------------
      * ! Setup
@@ -58,21 +66,21 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     function setUp() public {
         setupTokens(); // mock tokens
         setupContracts(); // instantiate GM contracts
-        setupWallets(); // topup balances for testing
+        setupLBA(); // setup mocked LBA contract
     }
 
     function setupTokens() internal {
         astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
         lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+        lba_ = new MockedLBA("LBA LP test token", "LBAT");
     }
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
-
+        staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        staker_ = new Staking(address(controller_));
-        lbaConverter_ = new LBAEnergyConverter(address(controller_), lba);
+        lbaConverter_ = new LBAEnergyConverter(address(controller_), lba_);
         converter_ = new Converter(address(controller_));
         energyStorage_ = new EnergyStorage(address(controller_));
 
@@ -88,60 +96,70 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         );
     }
 
-    function setupWallets() internal {
-        vm.deal(address(this), 1000); // adds 1000 ETH to the contract balance
-        vm.deal(deployer, 1); // gas spendings
-        vm.deal(someone, 1); // gas spendings
-        astoToken_.mint(someone, userBalance);
-        lpToken_.mint(someone, userBalance);
-    }
+    function setupLBA() internal {}
 
     /** ----------------------------------
-     * ! Logic
+     * ! Mocked functions
      * ----------------------------------- */
 
     /**
-     * @notice GIVEN: Known token, a wallet, and amount
-     * @notice  WHEN: caller is not a manager
-     * @notice   AND: amount is not greater than a balance
-     * @notice  THEN: should return stakeID
+     * @notice GIVEN: LPs are not claimed yet
+     * @notice  WHEN: user calls this function
+     * @notice  THEN: energy amount is returned and not zero
      */
-    function testUpdateHistory() public skip(false) {
-        uint256 stakeId;
-        vm.startPrank(address(staker_));
-        stakeId = astoStorage_.updateHistory(deployer, 1);
-        assert(stakeId == 1);
-        stakeId = astoStorage_.updateHistory(deployer, 1);
-        assert(stakeId == 2);
-    }
+    function test_Mocked_functions_work_as_expected() public skip(false) {
+        uint256 lpAmount = lba_.claimableLPAmount(someone);
+        assertEq(lpAmount, 1e12, "Mocked function should return 1e12");
 
-    /**
-     * @notice GIVEN: Known token, and amount, but wrong/missed wallet
-     * @notice  WHEN: caller is a manager
-     * @notice   AND: amount is not greater than a balance
-     * @notice  THEN: should revert with message WRONG_ADDRESS
-     */
-    function testUpdateHistory_wrong_wallet() public skipFailing(false) {
-        vm.prank(address(staker_));
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
-        astoStorage_.updateHistory(address(0), 1);
-    }
-
-    /**
-     * @notice GIVEN: all correct params
-     * @notice  WHEN: caller is not a manager
-     * @notice  THEN: should revert with message "AccessControl: account ..."
-     */
-    function testUpdateHistory_not_a_staker() public skipFailing(false) {
-        vm.prank(someone);
-        vm.expectRevert(
-            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xb9e206fa2af7ee1331b72ce58b6d938ac810ce9b5cdb65d35ab723fd67badf9e"
-        );
-        astoStorage_.updateHistory(deployer, 10);
+        lba_.setLPClaimedHelper(someone, 1e10);
+        assertEq(lba_.lpClaimed(someone), 1e10, "After claim it should be 1e10");
     }
 
     /** ----------------------------------
-     * ! Contract modifiers
+     * ! Busines logic
+     * ----------------------------------- */
+
+    /**
+     * @notice GIVEN: LPs are not claimed yet
+     * @notice  WHEN: user calls this function
+     * @notice  THEN: energy amount is returned and not zero
+     */
+    function test_getRemainingLBAEnergy_happy_path() public skip(false) {
+        vm.startPrank(address(someone));
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, oneDayAgo);
+        assertEq(energy, 1e12 * 2, "Should be 1e12 * 2 days");
+    }
+
+    /**
+     * @notice GIVEN: LPs are already claimed
+     * @notice  WHEN: user calls this function
+     * @notice  THEN: energy amount should be zero
+     */
+
+    function test_getRemainingLBAEnergy_already_claimed() public skip(false) {
+        vm.startPrank(address(someone));
+        uint256 lpAmount = lba_.claimableLPAmount(someone);
+        assertEq(lpAmount, 1e12, "should be 1e12");
+
+        lba_.setLPClaimedHelper(someone, 1e10);
+        assertEq(lba_.lpClaimed(someone), 1e10, "should be 1e10");
+    }
+
+    /**
+     * @notice GIVEN:
+     * @notice  WHEN:
+     * @notice   AND:
+     * @notice   AND:
+     * @notice  THEN:
+     * @notice   AND:
+     */
+
+    function testAsdf() public skip(true) returns (bool) {
+        return false;
+    }
+
+    /** ----------------------------------
+     * ! Testing modifiers
      * ----------------------------------- */
 
     /**

@@ -47,8 +47,4 @@ contract Util {
     function _isContract(address addr) internal view returns (bool) {
         return addr.code.length > 0;
     }
-
-    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
 }

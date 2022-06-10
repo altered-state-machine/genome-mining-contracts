@@ -11,7 +11,6 @@ import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
-
 import "./ILBA.sol";
 
 /**
@@ -25,11 +24,11 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
      * @dev rinkeby: 0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA
      * @dev mainnet: 0x46C1BFAe04c19aA6b114A0FC3Ef78d19C9256763
      */
-    ILBA private _lba = ILBA(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
+    ILBA private _lba;
 
-    constructor(address controller) {
+    constructor(address controller, ILBA lba) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
-
+        _lba = ILBA(lba);
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(USER_ROLE, controller);
         _grantRole(CONVERTER_ROLE, controller);
@@ -47,8 +46,8 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
         uint256 startTime,
         uint256 endTime
     ) private view returns (uint256) {
-        uint256 lpAmount = _lba.claimableLPAmount(addr);
         uint256 period = (endTime - startTime) / SECONDS_PER_DAY;
+        uint256 lpAmount = _lba.claimableLPAmount(addr);
         return period * lpAmount;
     }
 
@@ -57,10 +56,9 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
         uint256 startTime,
         uint256 endTime
     ) public view returns (uint256) {
-        uint256 usedEnergy = usedLBAEnergyPerUser[addr];
         uint256 availableEnergy = _calculateAvailableEnergy(addr, startTime, endTime);
-
-        return _min(availableEnergy - usedEnergy, 0);
+        if (availableEnergy > 0) return availableEnergy - usedLBAEnergyPerUser[addr];
+        else return 0;
     }
 
     function useLBAEnergy(

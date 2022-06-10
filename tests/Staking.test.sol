@@ -14,6 +14,7 @@ import "../contracts/helpers/IConverter.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
+import "../contracts/ILBA.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -42,6 +43,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     uint256 userBalance = 10e18;
     uint256 astoToken = 0; // tokenId
 
+    ILBA lba = ILBA(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
@@ -71,7 +73,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        lbaConverter_ = new LBAEnergyConverter(address(controller_));
+        lbaConverter_ = new LBAEnergyConverter(address(controller_), lba);
         converter_ = new Converter(address(controller_));
         energyStorage_ = new EnergyStorage(address(controller_));
 
