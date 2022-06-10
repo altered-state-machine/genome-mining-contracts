@@ -20,6 +20,8 @@ import "./ILBA.sol";
 contract LBAEnergyConverter is Util, PermissionControl, Pausable {
     bool private _initialized = false;
 
+    uint256 public startTime = 1656540000; // LBA LP tokens release time
+
     /**
      * @dev rinkeby: 0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA
      * @dev mainnet: 0x46C1BFAe04c19aA6b114A0FC3Ef78d19C9256763
@@ -40,22 +42,14 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
 
     mapping(address => uint256) public usedLBAEnergyPerUser;
 
-    function _calculateAvailableEnergy(
-        address addr,
-        uint256 startTime,
-        uint256 endTime
-    ) private view returns (uint256) {
+    function _calculateAvailableEnergy(address addr, uint256 endTime) private view returns (uint256) {
         uint256 period = (endTime - startTime) / SECONDS_PER_DAY;
         uint256 lpAmount = _lba.claimableLPAmount(addr);
         return period * lpAmount;
     }
 
-    function getRemainingLBAEnergy(
-        address addr,
-        uint256 startTime,
-        uint256 endTime
-    ) public view returns (uint256) {
-        uint256 availableEnergy = _calculateAvailableEnergy(addr, startTime, endTime);
+    function getRemainingLBAEnergy(address addr, uint256 endTime) public view returns (uint256) {
+        uint256 availableEnergy = _calculateAvailableEnergy(addr, endTime);
         if (availableEnergy > 0) return availableEnergy - usedLBAEnergyPerUser[addr];
         else return 0;
     }
@@ -63,11 +57,10 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
     function useLBAEnergy(
         address addr,
         uint256 amount,
-        uint256 startTime,
         uint256 endTime
     ) public onlyRole(CONVERTER_ROLE) returns (uint256) {
         uint256 usedEnergy = usedLBAEnergyPerUser[addr];
-        uint256 remainingEnergy = getRemainingLBAEnergy(addr, startTime, endTime);
+        uint256 remainingEnergy = getRemainingLBAEnergy(addr, endTime);
 
         if (remainingEnergy > 0) usedLBAEnergyPerUser[addr] = usedEnergy + amount;
         else revert CalculationsError(NOT_ENOUGH_ENERGY);

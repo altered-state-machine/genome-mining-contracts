@@ -49,10 +49,11 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     address multisig = deployer; // for the testing we use deployer as a multisig
 
     uint256 DAY = SECONDS_PER_DAY;
-    uint256 today = block.timestamp;
-    uint256 threeDaysAgo = today - 3 * DAY;
-    uint256 twoDaysAgo = today - 2 * DAY;
-    uint256 oneDayAgo = today - 1 * DAY;
+    uint256 SECOND = 1;
+    uint256 startTime = 1656540000;
+    uint256 day3 = startTime + 3 * DAY;
+    uint256 day2 = startTime + 2 * DAY;
+    uint256 day1 = startTime + 1 * DAY;
 
     /** ----------------------------------
      * ! Setup
@@ -111,7 +112,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
      */
     function test_getRemainingLBAEnergy_happy_path() public skip(false) {
         vm.startPrank(address(someone));
-        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, oneDayAgo);
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, day2);
         assertEq(energy, 1e12 * 2, "Should be 1e12 * 2 days");
     }
 
@@ -122,8 +123,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
      */
     function test_getRemainingLBAEnergy_not_enough_time_passed() public skip(false) {
         vm.startPrank(address(someone));
-        uint256 SECOND = 1;
-        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, twoDaysAgo - 1 * SECOND);
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, day1 - 1 * SECOND);
         assertEq(energy, 1e12 * 0, "Should be 0");
     }
 
@@ -135,7 +135,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
     function test_getRemainingLBAEnergy_already_claimed() public skip(false) {
         vm.startPrank(address(someone));
         vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(0));
-        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, threeDaysAgo, oneDayAgo);
+        uint256 energy = lbaConverter_.getRemainingLBAEnergy(someone, day2);
         assertEq(energy, 0, "Should be 0");
     }
 
@@ -146,10 +146,10 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
      */
     function test_useLBAEnergy_happy_path() public skip(false) {
         vm.startPrank(address(converter_));
-        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, day2);
         assertEq(remainingEnergy, 15e11, "Should be  2e12 - 5e11 = 15e11 Ae");
 
-        remainingEnergy = lbaConverter_.useLBAEnergy(someone, 10e11, threeDaysAgo, oneDayAgo);
+        remainingEnergy = lbaConverter_.useLBAEnergy(someone, 10e11, day2);
         assertEq(remainingEnergy, 5e11, "Should be  2e12 - 5e11 - 10e11 = 5e11 Ae");
     }
 
@@ -164,7 +164,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x1cf336fddcc7dc48127faf7a5b80ee54fce73ef647eecd31c24bb6cce3ac3eef"
         );
-        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, day2);
     }
 
     /**
@@ -176,7 +176,7 @@ contract LBAEnergyConverterTestContract is DSTest, Util {
         vm.mockCall(address(lba_), abi.encodeWithSelector(lba_.claimableLPAmount.selector, someone), abi.encode(0));
         vm.startPrank(address(converter_));
         vm.expectRevert(abi.encodeWithSelector(Util.CalculationsError.selector, NOT_ENOUGH_ENERGY));
-        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, threeDaysAgo, oneDayAgo);
+        uint256 remainingEnergy = lbaConverter_.useLBAEnergy(someone, 5e11, day2);
     }
 
     /** ----------------------------------
