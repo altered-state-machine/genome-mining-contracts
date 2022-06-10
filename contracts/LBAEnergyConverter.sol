@@ -62,7 +62,7 @@ contract LBAEnergyConverter is Util, PermissionControl, Pausable {
         uint256 usedEnergy = usedLBAEnergyPerUser[addr];
         uint256 remainingEnergy = getRemainingLBAEnergy(addr, endTime);
 
-        if (remainingEnergy > 0) usedLBAEnergyPerUser[addr] = usedEnergy + amount;
+        if (remainingEnergy > amount) usedLBAEnergyPerUser[addr] = usedEnergy + amount;
         else revert CalculationsError(NOT_ENOUGH_ENERGY);
 
         return remainingEnergy - amount;
