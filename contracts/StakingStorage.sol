@@ -45,7 +45,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     function updateHistory(address addr, uint256 amount) public onlyRole(STAKER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
-        uint128 time = uint128(block.timestamp);
+        uint128 time = uint128(currentTime());
         Stake memory newStake = Stake(time, amount);
         uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, _stakeHistory[addr] starts from 1
         _stakeHistory[addr][userStakeId] = newStake;
@@ -81,6 +81,17 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
 
     function getUserLastStakeId(address addr) external view returns (uint256) {
         return _stakeIds[addr];
+    }
+
+    /**
+     * @notice Get the current periodId based on current timestamp
+     * @dev Can be overridden by child contracts
+     *
+     * @return current timestamp
+     */
+    function currentTime() public view virtual returns (uint256) {
+        // solhint-disable-next-line not-rely-on-time
+        return block.timestamp;
     }
 
     /** ----------------------------------

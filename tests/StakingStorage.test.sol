@@ -7,8 +7,6 @@ import "../contracts/mocks/MockedERC20.sol";
 import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
-import "../contracts/Converter.sol";
-import "../contracts/EnergyStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/helpers/IConverter.sol";
 
@@ -26,11 +24,11 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Staking staker_;
-    Converter converter_;
-    EnergyStorage energyStorage_;
     Controller controller_;
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
+    EnergyStorage energyStorage_;
+    Converter converterLogic_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -69,7 +67,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
-        converter_ = new Converter(address(controller_));
+        converterLogic_ = new Converter(address(controller_), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
@@ -78,7 +76,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
-            address(converter_),
+            address(converterLogic_),
             address(energyStorage_)
         );
     }

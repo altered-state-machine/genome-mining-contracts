@@ -35,11 +35,14 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     uint256 public constant LP_TOKEN_ID = 1;
 
     event EnergyUsed(address addr, uint256 amount);
+    event PeriodAdded(uint256 time, uint256 periodId, Period period);
+    event PeriodUpdated(uint256 time, uint256 periodId, Period period);
 
-    constructor(address controller) {
+    constructor(address controller, Period[] memory _periods) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(USER_ROLE, controller);
+        _addPeriods(_periods);
         _pause();
     }
 
@@ -89,16 +92,16 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      */
     function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
         uint256 total = 0;
-        uint256 prevStakedAmount = 0;
-        for (uint256 i = 0; i < history.length; i++) {
-            if (currentTime() < history[i].time) continue;
+        for (uint256 i = history.length; i > 0; i--) {
+            if (currentTime() < history[i - 1].time) continue;
 
-            uint256 elapsedTime = currentTime().sub(history[i].time);
-            uint256 elapsedDays = elapsedTime.div(SECONDS_PER_DAY);
-            total = total.add(elapsedDays.mul(history[i].amount.sub(prevStakedAmount)).mul(multiplier));
-            prevStakedAmount = history[i].amount;
+            uint256 elapsedTime = i == history.length
+                ? currentTime().sub(history[i - 1].time)
+                : history[i].time.sub(history[i - 1].time);
+
+            total = total.add(elapsedTime.mul(history[i - 1].amount).mul(multiplier));
         }
-        return total;
+        return total.div(SECONDS_PER_DAY);
     }
 
     /**
@@ -192,13 +195,25 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /**
-     * @dev Initialize pre-defined periods
+     * @dev Add new periods
+     * @dev This is a private function, can only be called in this contract
+     *
+     * @param _periods The list of periods to be added
      */
-
-    function addPeriods(Period[] memory _periods) public onlyRole(MANAGER_ROLE) {
+    function _addPeriods(Period[] memory _periods) private {
         for (uint256 i = 0; i < _periods.length; i++) {
             _addPeriod(_periods[i]);
         }
+    }
+
+    /**
+     * @dev Add new periods
+     * @dev Only manager contract has the permission to call this function
+     *
+     * @param _periods The list of periods to be added
+     */
+    function addPeriods(Period[] memory _periods) public onlyRole(MANAGER_ROLE) {
+        _addPeriods(_periods);
     }
 
     /**
@@ -209,6 +224,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      */
     function _addPeriod(Period memory period) private {
         periods[++periodIdCounter] = period;
+        emit PeriodAdded(currentTime(), periodIdCounter, period);
     }
 
     /**
@@ -231,6 +247,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function _updatePeriod(uint256 periodId, Period memory period) private {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         periods[periodId] = period;
+        emit PeriodUpdated(currentTime(), periodId, period);
     }
 
     /**
