@@ -20,7 +20,7 @@ import "forge-std/Vm.sol";
 /**
  * @dev Tests for the ASM ASTO Time contract
  */
-contract ControllerTestContract is DSTest, IStaking, Util {
+contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     Staking staker_;
     Staking newStaker_;
     StakingStorage astoStorage_;
@@ -69,7 +69,7 @@ contract ControllerTestContract is DSTest, IStaking, Util {
         newStaker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_));
+        converterLogic_ = new Converter(address(controller_), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
@@ -98,7 +98,6 @@ contract ControllerTestContract is DSTest, IStaking, Util {
         console.log("LP Storage", address(lpStorage_));
     }
 
-
     /**
      * @notice GIVEN: new staking contract address
      * @notice  WHEN: NOT a manager calls the `upgrdadeContracts()`
@@ -106,8 +105,19 @@ contract ControllerTestContract is DSTest, IStaking, Util {
      */
     function testUpgradeContracts_wrong_role() public skip(false) {
         vm.prank(address(someone)); // someone address - 0xa847d497b38b9e11833eac3ea03921b40e6d847c
-        vm.expectRevert("AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08");
-        controller_.upgradeContracts(address(0), address(0), address(0), address(0), address(0), address(newStaker_), address(0), address(0));
+        vm.expectRevert(
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08"
+        );
+        controller_.upgradeContracts(
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(newStaker_),
+            address(0),
+            address(0)
+        );
     }
 
     /**
@@ -118,18 +128,38 @@ contract ControllerTestContract is DSTest, IStaking, Util {
      */
     function testUpgradeContracts_staking_sol() public skip(false) {
         vm.prank(address(multisig));
-        controller_.upgradeContracts(address(0), address(0), address(0), address(0), address(0), address(newStaker_), address(0), address(0));
-        assertEq(controller_.getStakingLogic(), address(newStaker_), "Controller should return new staking contract address");
-        assertEq(newStaker_.getTokenAddress(0), address(astoToken_), "New Staking contract should be properly initialized");
-        assertEq(newStaker_.getTokenAddress(1), address(lpToken_), "New Staking contract should be properly initialized");
-
+        controller_.upgradeContracts(
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(newStaker_),
+            address(0),
+            address(0)
+        );
+        assertEq(
+            controller_.getStakingLogic(),
+            address(newStaker_),
+            "Controller should return new staking contract address"
+        );
+        assertEq(
+            newStaker_.getTokenAddress(0),
+            address(astoToken_),
+            "New Staking contract should be properly initialized"
+        );
+        assertEq(
+            newStaker_.getTokenAddress(1),
+            address(lpToken_),
+            "New Staking contract should be properly initialized"
+        );
 
         assertEq(controller_.getAstoStorage(), address(astoStorage_), "Asto Storage should return old address");
         assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
         assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
         assertEq(controller_.getEnergyStorage(), address(energyStorage_), "Energy Storage should return old address");
         assertEq(controller_.getConverterLogic(), address(converterLogic_), "Energy Storage should return old address");
-        
+
         controller_.pause();
         bool isPaused = newStaker_.paused();
 

@@ -70,7 +70,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        converter_ = new Converter(address(controller_));
+        converter_ = new Converter(address(controller_), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
