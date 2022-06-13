@@ -8,13 +8,13 @@ Status: <br>
 - [ ] AUDITED
 - [ ] PASSED & PUBLIC
 
-## Logic of Gen II brains minting event
+## The logic of Gen II brains minting event
 
 The Gen II brains minting event is going to have 3 mining periods and 3 minting windows. Each window has predefined 30.000 brains to be minted.
 
-After Mining 1 is over, the Mining period 2 AND Minting Window 1 start.
+After Mining 1 is over, Mining period 2 AND Minting Window 1 start.
 
-Energy minted during Mining period becomes available during Minting window.
+Energy minted during the Mining period becomes available during the Minting window.
 
 ![Logic of minting event](assets/minting_event.png)
 
@@ -22,9 +22,9 @@ The energy and brains left non-minted from the previous Window will migrate to t
 
 Brains left after Window 3 can be withdrawn by the ASM and, probably, traded openly for ASTO OR destroyed.
 
-Time that tokens remained staked will be mapped to the Energy in a 1:1 ratio.
+The time that tokens remained staked will be mapped to the Energy in a 1:1 ratio.
 
-Still, we want to use token multiplier to reward ASTO or LP token holders differently. Token multiplier is setup on contract deployment but can be changed by contract owner (DAO).
+Still, we want to use token multipliers to reward ASTO or LP token holders differently. Token multipliers are set on contract deployment but can be changed by the contract owner (DAO).
 
 ### Event architecture
 
@@ -86,9 +86,9 @@ Example:
 
 ### Passive Energy conversion
 
-Passive Energy can be earned by keeping LP tokens staked in LBA contract (if user has any).
+Passive Energy can be earned by keeping LP tokens staked in the LBA contract (if the user has any).
 
-The Passive energy has it's own multiplier to reward users that keep their LP tokens staked but generally the conversion is the same: the longer you keep your tokens in the LBA contract, the more Energy (passive energy) you gain from that.
+Passive Energy has its own multiplier to reward users that keep their LP tokens staked but generally, the conversion is the same: the longer you keep your tokens in the LBA contract, the more Energy (passive energy) you gain from that.
 
 <br>
 
@@ -98,6 +98,6 @@ Energy is used by Minting contract, which requests the energy from the Calculati
 
 It is not possible to return energy from the Minting contract back to Calculations contract.
 
-Energy for minting is a sum of Active and Passive energies. The Passive Energy has to be spent first.
+Energy for minting is a sum of Active and Passive energies. Passive Energy has to be spent first.
 
-    The Passive Energy is available ONLY if user has not claimed LP tokens from LBA contract yet. After LP tokens are claimed the Passive Energy stops its flow (becomes unavailable).
+    Passive Energy is available ONLY if user has not claimed LP tokens from LBA contract yet. After LP tokens are claimed the Passive Energy stops its flow (becomes unavailable).
