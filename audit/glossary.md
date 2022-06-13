@@ -65,9 +65,7 @@ There is a general conversion rate of time into energy: e = Token \* time:
 
 staking 1 token for 1 second gives you 1 energy unit
 
-Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, as determined by token multipliers.
-
----
+Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, which is determined by token multipliers.
 
 Example:
 
