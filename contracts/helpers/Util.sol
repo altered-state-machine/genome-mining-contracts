@@ -16,8 +16,10 @@ contract Util {
     string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage contract";
     string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic contract";
     string constant INVALID_ENERGY_STORAGE = "Invalid Energy Storage contract";
+    string constant INVALID_LBA_ENERGY_STORAGE = "Invalid LBA Energy Storage contract";
     string constant INVALID_ASTO_CONTRACT = "Invalid ASTO contract";
     string constant INVALID_LP_CONTRACT = "Invalid LP contract";
+    string constant INVALID_LBA_CONTRACT = "Invalid LBA contract";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
     string constant WRONG_PERIOD_ID = "Wrong periodId";

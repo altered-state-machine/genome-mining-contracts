@@ -11,6 +11,7 @@ import "./helpers/IStaking.sol";
 import "./helpers/TimeConstants.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
+import "./interfaces/ILiquidityBootstrapAuction.sol";
 
 /**
  * @dev ASM Genome Mining - Converter Logic contract
@@ -29,17 +30,26 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     mapping(uint256 => Period) public periods;
 
     Staking public stakingLogic_;
+    ILiquidityBootstrapAuction public lba_;
     EnergyStorage public energyStorage_;
+    EnergyStorage public lbaEnergyStorage_;
 
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
     event EnergyUsed(address addr, uint256 amount);
+    event LBAEnergyUsed(address addr, uint256 amount);
     event PeriodAdded(uint256 time, uint256 periodId, Period period);
     event PeriodUpdated(uint256 time, uint256 periodId, Period period);
 
-    constructor(address controller, Period[] memory _periods) {
+    constructor(
+        address controller,
+        ILiquidityBootstrapAuction lba,
+        Period[] memory _periods
+    ) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
+        if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
+        lba_ = ILiquidityBootstrapAuction(lba);
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(USER_ROLE, controller);
         _addPeriods(_periods);
@@ -90,7 +100,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param multiplier The multiplier for staked token
      * @return total energy amount for the token
      */
-    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
+    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) private view returns (uint256) {
         uint256 total = 0;
         for (uint256 i = history.length; i > 0; i--) {
             if (currentTime() < history[i - 1].time) continue;
@@ -104,6 +114,32 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         return total.div(SECONDS_PER_DAY);
     }
 
+    function _calculateAvailableEnergyForLBA(address addr, uint256 periodId) private view returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+
+        Period memory period = getPeriod(periodId);
+
+        uint256 lbaEnergyStartTime = lba_.lpTokenReleaseTime();
+        if (period.endTime < lbaEnergyStartTime) return 0;
+
+        uint256 period = period.endTime - lbaEnergyStartTime;
+        uint256 lbaLPAmount = _lba.claimableLPAmount(addr);
+
+        return period.mul(lbaLPAmount).mul(period.lbaLPMultiplier).div(SECONDS_PER_DAY);
+    }
+
+    function getRemainingLBAEnergy(address addr, uint256 periodId) public view returns (uint256) {
+        uint256 availableEnergy = _calculateAvailableEnergyForLBA(addr, periodId);
+        if (availableEnergy > 0) return availableEnergy - getConsumedLBAEnergy(addr);
+        return 0;
+    }
+
+    function getConsumedLBAEnergy(address addr) public view returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        return lbaEnergyStorage_.consumedAmount(addr);
+    }
+
     /**
      * @dev Get the energy amount available for address `addr`
      *
@@ -112,7 +148,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return Energy amount available
      */
     function getEnergy(address addr, uint256 periodId) public view returns (uint256) {
-        return calculateEnergy(addr, periodId) - getConsumedEnergy(addr);
+        return calculateEnergy(addr, periodId) - getConsumedEnergy(addr) + getRemainingLBAEnergy(addr, periodId);
     }
 
     /**
@@ -131,9 +167,19 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
-        energyStorage_.increaseConsumedAmount(addr, amount);
+        uint256 remainingLBAEnergy = getRemainingLBAEnergy(addr, periodId);
+        uint256 lbaEnergyToSpend = Math.min(amount, remainingLBAEnergy);
 
-        emit EnergyUsed(addr, amount);
+        if (lbaEnergyToSpend > 0) {
+            lbaEnergyStorage_.increaseConsumedAmount(addr, lbaEnergyToSpend);
+            emit LBAEnergyUsed(addr, lbaEnergyToSpend);
+        }
+
+        uint256 energyToSpend = amount - lbaEnergyToSpend;
+        if (energyToSpend > 0) {
+            energyStorage_.increaseConsumedAmount(addr, amount);
+            emit EnergyUsed(addr, energyToSpend);
+        }
     }
 
     /** ----------------------------------
@@ -276,15 +322,18 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function init(
         address manager,
         address energyStorage,
+        address lbaEnergyStorage,
         address stakingLogic
     ) external onlyRole(CONTROLLER_ROLE) {
         if (_initialized) revert ContractError(ALREADY_INITIALIZED);
 
         if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
+        if (!_isContract(lbaEnergyStorage)) revert ContractError(INVALID_LBA_ENERGY_STORAGE);
         if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
 
         stakingLogic_ = Staking(stakingLogic);
         energyStorage_ = EnergyStorage(energyStorage);
+        lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
         _grantRole(MANAGER_ROLE, manager);
         _unpause();
