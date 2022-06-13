@@ -58,29 +58,27 @@ _see [energy.md](energy.md)_
 
 ### Active Energy conversion
 
-There are 3 mining periods when user’s energy is calculated based on user’s tokens staking time.
+There are 3 mining cycles when user’s energy is calculated based on user’s tokens staking time.
 
 Technically it means the Converter contract calls the Staking contract to get the time users tokens remained staked and apply conversion from time to energy units.
 There is a general conversion rate of time into energy: e = Token \* time:
 
-staking 1 token for 1 full hour gives you 1 energy unit
+staking 1 token for 1 second gives you 1 energy unit
 
-Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, as determined by token multipliers.
-
----
+Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, which is determined by token multipliers.
 
 Example:
 
 ![Active energy calculations, example](assets/example.png)
 
 - **Staking history**
-  - _astoHistory_ for epoch 1 = 5 + 15 +15
-  - _lpHistory_ for epoch 1 = 10
-  - _astoHistory_ for epoch 2 = (15-7)
-  - _lpHistory_ for epoch 2 = 10
+  - _astoHistory_ for cycle 1 = 5 + 15 +15
+  - _lpHistory_ for cycle 1 = 10
+  - _astoHistory_ for cycle 2 = (15-10) \* 3 days
+  - _lpHistory_ for cycle 2 = 10 \* 3 days
 - **Energy calculations**
-  - Energy for epoch 1 = astoHistory 1 + lpHistory 1 * LPkoef 1 = 35 + 10*0.1
-  - Energy for epoch 2 = astoHistory 2 + lpHistory 2 * LPkoef 2 = 8 + 10*0.2
+  - Energy for cycle 1 = astoHistory 1 + lpHistory 1 * LPkoef 1 = 35 + 10*0.1
+  - Energy for cycle 2 = astoHistory 2 + lpHistory 2 * LPkoef 2 = 15 + 30*0.2
 
 ---
 
