@@ -9,6 +9,7 @@ import "../contracts/Staking.sol";
 import "../contracts/StakingStorage.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/helpers/IConverter.sol";
+import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
@@ -28,6 +29,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
     EnergyStorage energyStorage_;
+    EnergyStorage lbaEnergyStorage_;
     Converter converterLogic_;
 
     // Cheat codes are state changing methods called from the address:
@@ -38,6 +40,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     uint256 initialBalance = 100e18;
     uint256 userBalance = 10e18;
 
+    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
@@ -67,8 +70,9 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
-        converterLogic_ = new Converter(address(controller_), new Period[](0));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
+        lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
             address(astoToken_),
@@ -77,7 +81,8 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
             address(lpStorage_),
             address(staker_),
             address(converterLogic_),
-            address(energyStorage_)
+            address(energyStorage_),
+            address(lbaEnergyStorage_)
         );
     }
 

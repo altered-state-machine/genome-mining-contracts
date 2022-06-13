@@ -8,6 +8,7 @@ import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/helpers/IConverter.sol";
 import "../contracts/helpers/IStaking.sol";
+import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -18,6 +19,7 @@ import "forge-std/Vm.sol";
  */
 contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     EnergyStorage energyStorage_;
+    EnergyStorage lbaEnergyStorage_;
     Converter converterLogic_;
     Controller controller_;
     Staking stakingLogic_;
@@ -26,6 +28,7 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
     Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
+    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
@@ -46,12 +49,14 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     function setupContracts() internal {
         controller_ = new Controller(multisig);
         energyStorage_ = new EnergyStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_), new Period[](0));
+        lbaEnergyStorage_ = new EnergyStorage(address(controller_));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
         stakingLogic_ = new Staking(address(controller_));
 
         vm.startPrank(address(controller_));
         energyStorage_.init(address(converterLogic_));
-        converterLogic_.init(multisig, address(energyStorage_), address(stakingLogic_));
+        lbaEnergyStorage_.init(address(converterLogic_));
+        converterLogic_.init(multisig, address(energyStorage_), address(lbaEnergyStorage_), address(stakingLogic_));
         vm.stopPrank();
     }
 
@@ -106,8 +111,9 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         uint128 endTime = startTime + 60 days;
         uint128 astoMultiplier = 1 * 10**18;
         uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
 
-        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier);
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
         converterLogic_.addPeriod(period);
 
         vm.warp(startTime + 1 days);
@@ -121,13 +127,21 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         assert(p.endTime == period.endTime);
         assert(p.astoMultiplier == period.astoMultiplier);
         assert(p.lpMultiplier == period.lpMultiplier);
+        assert(p.lbaLPMultiplier == period.lbaLPMultiplier);
 
         uint128 startTimeNew = uint128(block.timestamp + 2 days);
         uint128 endTimeNew = startTimeNew + 60 days;
         uint128 astoMultiplierNew = 1.2 * 10**18;
         uint128 lpMultiplierNew = 1.5 * 10**18;
+        uint128 lbaLPMultiplierNew = 2 * 10**18;
 
-        Period memory periodNew = Period(startTimeNew, endTimeNew, astoMultiplierNew, lpMultiplierNew);
+        Period memory periodNew = Period(
+            startTimeNew,
+            endTimeNew,
+            astoMultiplierNew,
+            lpMultiplierNew,
+            lbaLPMultiplierNew
+        );
         converterLogic_.updatePeriod(periodId, periodNew);
 
         uint256 periodIdNew = converterLogic_.getCurrentPeriodId();
@@ -139,6 +153,7 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         assert(pNew.endTime == endTimeNew);
         assert(pNew.astoMultiplier == astoMultiplierNew);
         assert(pNew.lpMultiplier == lpMultiplierNew);
+        assert(pNew.lbaLPMultiplier == lbaLPMultiplierNew);
     }
 
     /**
@@ -153,8 +168,9 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         uint128 endTime = startTime + 60 days;
         uint128 astoMultiplier = 1 * 10**18;
         uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
 
-        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier);
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
         vm.prank(multisig);
         converterLogic_.addPeriod(period);
 
@@ -196,8 +212,9 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         uint128 endTime = startTime + 60 days;
         uint128 astoMultiplier = 1 * 10**18;
         uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.36 * 10**18;
 
-        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier);
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
         vm.prank(multisig);
         converterLogic_.addPeriod(period);
 
@@ -240,18 +257,19 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         uint128 endTime = startTime + 60 days;
         uint128 astoMultiplier = 1 * 10**18;
         uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
 
         Period[] memory periods = new Period[](2);
-        periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier);
-        periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier);
+        periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
 
         vm.startPrank(multisig);
         converterLogic_.addPeriods(periods);
         vm.stopPrank();
 
         assert(converterLogic_.getConsumedEnergy(someone) == 0);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 0);
 
-        uint256 newConsumedAmount = 100;
         vm.startPrank(address(controller_));
 
         Stake[] memory astoHistory = new Stake[](1);
@@ -267,11 +285,18 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
             abi.encodeWithSelector(stakingLogic_.getHistory.selector, 1, someone, uint256(endTime)),
             abi.encode(new Stake[](0))
         );
+        vm.mockCall(
+            address(lba),
+            abi.encodeWithSelector(lba.lpTokenReleaseTime.selector),
+            abi.encode(uint256(startTime))
+        );
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(10));
 
-        vm.warp(startTime + 60 days);
-        converterLogic_.useEnergy(someone, 1, newConsumedAmount);
+        vm.warp(startTime + 1 days);
+        converterLogic_.useEnergy(someone, 1, 100 * 10**18);
         vm.stopPrank();
-        assert(converterLogic_.getConsumedEnergy(someone) == newConsumedAmount);
+        assert(converterLogic_.getConsumedEnergy(someone) == 85 * 10**18);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 15 * 10**18);
     }
 
     /** ----------------------------------

@@ -44,7 +44,7 @@ contract Controller is Util, PermissionControl {
         address stakingLogic,
         address converterLogic,
         address energyStorage,
-        address lbaEnergyStorage,
+        address lbaEnergyStorage
     ) external onlyRole(MANAGER_ROLE) {
         if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
         if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
@@ -76,7 +76,7 @@ contract Controller is Util, PermissionControl {
             stakingLogic,
             converterLogic,
             energyStorage,
-            lbaEnergyStorage,
+            lbaEnergyStorage
         );
     }
 
@@ -163,7 +163,12 @@ contract Controller is Util, PermissionControl {
 
     function _setConverterLogic(address newContract) private {
         _converterLogic = Converter(newContract);
-        _converterLogic.init(address(_manager), address(_energyStorage), address(_lbaEnergyStorage), address(_stakingLogic));
+        _converterLogic.init(
+            address(_manager),
+            address(_energyStorage),
+            address(_lbaEnergyStorage),
+            address(_stakingLogic)
+        );
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
@@ -178,7 +183,6 @@ contract Controller is Util, PermissionControl {
         _lbaEnergyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "LBA Energy Storage", address(this), newContract);
     }
-
 
     /** ----------------------------------
      * ! External functions | Manager Role
