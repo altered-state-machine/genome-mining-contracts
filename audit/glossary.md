@@ -4,13 +4,37 @@ Status: <br>
 
 - [x] DRAFT
 - [ ] APPROVED
-- [ ] SUBMITTED
+- [x] SUBMITTED
 - [ ] AUDITED
 - [ ] PASSED & PUBLIC
 
-Staking, Conversion, and Minting are separated.
+## Logic of Gen II brains minting event
+
+The Gen II brains minting event is going to have 3 mining periods and 3 minting windows. Each window has predefined 30.000 brains to be minted.
+
+After Mining 1 is over, the Mining period 2 AND Minting Window 1 start.
+
+Energy minted during Mining period becomes available during Minting window.
+
+![Logic of minting event](assets/minting_event.png)
+
+The energy and brains left non-minted from the previous Window will migrate to the next Minting period.
+
+Brains left after Window 3 can be withdrawn by the ASM and, probably, traded openly for ASTO OR destroyed.
+
+Time that tokens remained staked will be mapped to the Energy in a 1:1 ratio.
+
+Still, we want to use token multiplier to reward ASTO or LP token holders differently. Token multiplier is setup on contract deployment but can be changed by contract owner (DAO).
+
+### Event architecture
 
 ![General architecture](assets/general.png)
+
+    Mining period a.k.a. Energy conversion, means conversion of time that user tokens were staked to the energy earned by user, that can be spent on GEN II brains minting.
+
+Staking, Conversion, and Minting are separated.
+
+<br>
 
 ## Staking
 
@@ -26,45 +50,54 @@ You can unlock (unstake) your tokens anytime and get them back.
 Unstaking is the process of unlocking (getting back) your ASTO or LP tokens.
 No direct reward for the user.
 
-## Time to Energy conversion (calculation)
+<br>
+
+## Energy conversion (Mining)
+
+_see [energy.md](energy.md)_
+
+### Active Energy conversion
 
 There are 3 mining periods when user’s energy is calculated based on user’s tokens staking time.
 
-Technically it means the Calculator contract calls the staking contract to get the time users tokens remained staked and apply conversion from time to energy units.
+Technically it means the Converter contract calls the Staking contract to get the time users tokens remained staked and apply conversion from time to energy units.
 There is a general conversion rate of time into energy: e = Token \* time:
 
 staking 1 token for 1 full hour gives you 1 energy unit
 
-Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, as determined by token multiplier, for example, let’s consider Mining period 1, with
+Staking ASTO tokens COULD give you more or less energy units than staking LP tokens, as determined by token multipliers.
 
-- duration D equal to 30 days,
-- the LP tokens have a multiplier LPk equal to 1.5,
-- ASTO tokens have a multiplier Ak equal to 1,
+---
 
-Conversion:
+Example:
 
-e = D(Ak(ASTOtokens) + LPk(LPtokens)),
-or for 200 ASTO and 100 LP tokens staked during such event:
-e = 30(1(200) + 1.5(100)) = 30 \* (200+150) = 10500 Energy units
+![Active energy calculations, example](assets/example.png)
 
-### When calculation happens
+- **Staking history**
+  - _astoHistory_ for epoch 1 = 5 + 15 +15
+  - _lpHistory_ for epoch 1 = 10
+  - _astoHistory_ for epoch 2 = (15-7)
+  - _lpHistory_ for epoch 2 = 10
+- **Energy calculations**
+  - Energy for epoch 1 = astoHistory 1 + lpHistory 1 * LPkoef 1 = 35 + 10*0.1
+  - Energy for epoch 2 = astoHistory 2 + lpHistory 2 * LPkoef 2 = 8 + 10*0.2
 
-There are three possible triggers for calculations to happen:
+---
 
-Users check their balances during Mining Period. They pay the gas each time they call the calculation function.
+### Passive Energy conversion
 
-Users call the minting function (during Minting Window), which, in turn, calls Calculation functions that do the math on available energy balance and transfer it to the minting contract. Users pay the gas as originators of the function call.
+Passive Energy can be earned by keeping LP tokens staked in LBA contract (if user has any).
 
-At the start of each minting window, the minting contract calls the Calculator and thus the Minting contract pays the gas for all users. This could be a bit optimized by combining with the first approach (or doing this offchain) but still requires paying gas for energy transfers.
+The Passive energy has it's own multiplier to reward users that keep their LP tokens staked but generally the conversion is the same: the longer you keep your tokens in the LBA contract, the more Energy (passive energy) you gain from that.
 
-### Estimation
-
-Reading staking time, calculating related energy, and storing balance on-chain is not free.
-
-To avoid charging users every time they visit our FrontEnd pages, we will use off-chain solution.
+<br>
 
 ## Minting
 
 Energy is used by Minting contract, which requests the energy from the Calculations contract and if the specified user (wallet) has enough energy, it is transferred to the Minting contract.
 
 It is not possible to return energy from the Minting contract back to Calculations contract.
+
+Energy for minting is a sum of Active and Passive energies. The Passive Energy has to be spent first.
+
+    The Passive Energy is available ONLY if user has not claimed LP tokens from LBA contract yet. After LP tokens are claimed the Passive Energy stops its flow (becomes unavailable).
