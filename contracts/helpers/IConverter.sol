@@ -11,5 +11,6 @@ interface IConverter {
         uint128 endTime;
         uint128 astoMultiplier;
         uint128 lpMultiplier;
+        uint128 lbaLPMultiplier;
     }
 }

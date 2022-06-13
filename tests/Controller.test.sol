@@ -12,6 +12,7 @@ import "../contracts/helpers/IConverter.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 import "../contracts/mocks/MockedERC20.sol";
+import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -29,6 +30,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     MockedERC20 astoToken_;
     MockedERC20 lpToken_;
     EnergyStorage energyStorage_;
+    EnergyStorage lbaEnergyStorage_;
     Converter converterLogic_;
 
     // Cheat codes are state changing methods called from the address:
@@ -40,6 +42,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     uint256 userBalance = 10e18;
     uint256 astoToken = 0; // tokenId
 
+    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
@@ -69,8 +72,9 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         newStaker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_), new Period[](0));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
+        lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
             address(astoToken_),
@@ -79,7 +83,8 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
             address(lpStorage_),
             address(staker_),
             address(converterLogic_),
-            address(energyStorage_)
+            address(energyStorage_),
+            address(lbaEnergyStorage_)
         );
     }
 
@@ -116,6 +121,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
             address(0),
             address(newStaker_),
             address(0),
+            address(0),
             address(0)
         );
     }
@@ -135,6 +141,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
             address(0),
             address(0),
             address(newStaker_),
+            address(0),
             address(0),
             address(0)
         );
@@ -158,6 +165,11 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
         assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
         assertEq(controller_.getEnergyStorage(), address(energyStorage_), "Energy Storage should return old address");
+        assertEq(
+            controller_.getLBAEnergyStorage(),
+            address(lbaEnergyStorage_),
+            "Energy Storage should return old address"
+        );
         assertEq(controller_.getConverterLogic(), address(converterLogic_), "Energy Storage should return old address");
 
         controller_.pause();

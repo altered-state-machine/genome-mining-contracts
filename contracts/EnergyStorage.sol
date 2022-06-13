@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "./helpers/Util.sol";
 import "./helpers/PermissionControl.sol";
 
@@ -12,14 +11,13 @@ import "./helpers/PermissionControl.sol";
  * Store consumed energy amount for each address.
  * This contract will be called from Converter logic contract (Converter.sol)
  */
-contract EnergyStorage is Util, Pausable, PermissionControl {
+contract EnergyStorage is Util, PermissionControl {
     bool private _initialized = false;
     mapping(address => uint256) public consumedAmount;
 
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         _grantRole(CONTROLLER_ROLE, controller);
-        _pause();
     }
 
     /**
@@ -29,7 +27,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
      * @param addr The wallet address which consumed the energy
      * @param amount The amount of consumed energy
      */
-    function increaseConsumedAmount(address addr, uint256 amount) external whenNotPaused onlyRole(CONVERTER_ROLE) {
+    function increaseConsumedAmount(address addr, uint256 amount) external onlyRole(CONVERTER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         consumedAmount[addr] += amount;
     }
@@ -49,24 +47,7 @@ contract EnergyStorage is Util, Pausable, PermissionControl {
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
         _setupRole(CONVERTER_ROLE, converterLogic);
-        _unpause();
         _initialized = true;
-    }
-
-    /**
-     * @dev Pause the contract
-     * @dev only controller is allowed to call this function
-     */
-    function pause() external onlyRole(CONTROLLER_ROLE) {
-        _pause();
-    }
-
-    /**
-     * @dev Unpause the contract
-     * @dev only controller is allowed to call this function
-     */
-    function unpause() external onlyRole(CONTROLLER_ROLE) {
-        _unpause();
     }
 
     /**

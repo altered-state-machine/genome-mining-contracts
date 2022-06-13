@@ -6,6 +6,7 @@ import "../contracts/EnergyStorage.sol";
 import "../contracts/Controller.sol";
 import "../contracts/Converter.sol";
 import "../contracts/helpers/IConverter.sol";
+import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
 import "ds-test/Test.sol";
 import "forge-std/console.sol";
@@ -23,6 +24,7 @@ contract EnergyStorageTestContract is DSTest, IConverter, Util {
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
     Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
+    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
@@ -39,7 +41,7 @@ contract EnergyStorageTestContract is DSTest, IConverter, Util {
     function setupContracts() internal {
         controller_ = new Controller(multisig);
         energyStorage_ = new EnergyStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_), new Period[](0));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
 
         vm.startPrank(address(controller_));
         energyStorage_.init(address(converterLogic_));
