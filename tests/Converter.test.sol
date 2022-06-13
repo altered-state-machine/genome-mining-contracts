@@ -527,9 +527,8 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
         periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
 
-        vm.startPrank(multisig);
+        vm.prank(multisig);
         converterLogic_.addPeriods(periods);
-        vm.stopPrank();
 
         vm.startPrank(address(controller_));
 
