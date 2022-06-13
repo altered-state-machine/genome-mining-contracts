@@ -133,7 +133,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id for energy calculation
      * @return energy amount
      */
-    function _calculateAvailableEnergyForLBA(address addr, uint256 periodId) private view returns (uint256) {
+    function calculateAvailableLBAEnergy(address addr, uint256 periodId) public view returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
 
@@ -167,7 +167,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return Energy amount remaining
      */
     function getRemainingLBAEnergy(address addr, uint256 periodId) public view returns (uint256) {
-        uint256 availableEnergy = _calculateAvailableEnergyForLBA(addr, periodId);
+        uint256 availableEnergy = calculateAvailableLBAEnergy(addr, periodId);
         return availableEnergy > 0 ? (availableEnergy - getConsumedLBAEnergy(addr)) : 0;
     }
 
@@ -215,7 +215,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return a Period struct
      */
     function getPeriod(uint256 periodId) public view returns (Period memory) {
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        if (periodId == 0 || periodId > periodIdCounter) revert InvalidInput(WRONG_PERIOD_ID);
         return periods[periodId];
     }
 

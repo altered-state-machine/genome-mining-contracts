@@ -91,9 +91,35 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
      * @notice   AND:  wallet address is invalid
      * @notice  THEN: should revert the message WRONG_ADDRESS
      */
-    function testGetConsumedAmount_wrong_wallet() public skip(false) {
+    function testGetConsumedEnergy_wrong_wallet() public skip(false) {
         vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
         converterLogic_.getConsumedEnergy(address(0));
+    }
+
+    /**
+     * @notice GIVEN: a wallet, and amount
+     * @notice  WHEN: caller is a converter
+     * @notice   AND: wallet address is valid
+     * @notice  THEN: should get correct consumed amount from mappings
+     */
+    function testGetConsumedLBAEnergy() public skip(false) {
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 0);
+
+        uint256 newConsumedAmount = 100;
+        vm.startPrank(address(converterLogic_));
+        lbaEnergyStorage_.increaseConsumedAmount(someone, newConsumedAmount);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == newConsumedAmount);
+    }
+
+    /**
+     * @notice GIVEN: a wallet, and amount
+     * @notice  WHEN: caller is a converter
+     * @notice   AND:  wallet address is invalid
+     * @notice  THEN: should revert the message WRONG_ADDRESS
+     */
+    function testGetConsumedLBAEnergy_wrong_wallet() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_ADDRESS));
+        converterLogic_.getConsumedLBAEnergy(address(0));
     }
 
     /**
@@ -154,6 +180,105 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         assert(pNew.astoMultiplier == astoMultiplierNew);
         assert(pNew.lpMultiplier == lpMultiplierNew);
         assert(pNew.lbaLPMultiplier == lbaLPMultiplierNew);
+    }
+
+    /**
+     * @notice GIVEN: periodId
+     * @notice  WHEN: user calls `getPeriod` function
+     * @notice  AND: periodId is invalid
+     * @notice  THEN: should revert the message WRONG_PERIOD_ID
+     */
+    function testGetPeriod_invalid_period_id() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_PERIOD_ID));
+        converterLogic_.getPeriod(0);
+
+        uint256 periodId = converterLogic_.periodIdCounter() + 1;
+        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, WRONG_PERIOD_ID));
+        converterLogic_.getPeriod(periodId);
+    }
+
+    function testGetCurrentPeriodId_current_time_in_period() public skip(false) {
+        vm.startPrank(multisig);
+
+        uint256 periodId = converterLogic_.getCurrentPeriodId();
+        assert(periodId == 0);
+
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        converterLogic_.addPeriod(period);
+
+        uint256 newPeriodId = converterLogic_.getCurrentPeriodId();
+        assert(newPeriodId == 1);
+    }
+
+    function testGetCurrentPeriodId_current_time_early_than_startTime() public skip(false) {
+        vm.startPrank(multisig);
+
+        uint128 startTime = uint128(block.timestamp) + 1 days;
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        converterLogic_.addPeriod(period);
+
+        uint256 periodId = converterLogic_.getCurrentPeriodId();
+        assert(periodId == 0);
+    }
+
+    function testGetCurrentPeriodId_current_time_later_than_endTime() public skip(false) {
+        vm.startPrank(multisig);
+
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        converterLogic_.addPeriod(period);
+
+        vm.warp(endTime + 1 days);
+        uint256 periodId = converterLogic_.getCurrentPeriodId();
+        assert(periodId == 0);
+    }
+
+    function testGetCurrentPeriodId_multiple_periods() public skip(false) {
+        vm.startPrank(multisig);
+
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period[] memory periods = new Period[](3);
+        periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        periods[1] = Period(startTime + 60 days, startTime + 120 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        periods[2] = Period(startTime + 120 days, startTime + 180 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+
+        converterLogic_.addPeriods(periods);
+
+        vm.warp(startTime - 1 days);
+        assert(converterLogic_.getCurrentPeriodId() == 0);
+
+        vm.warp(startTime + 10 days);
+        assert(converterLogic_.getCurrentPeriodId() == 1);
+
+        vm.warp(startTime + 70 days);
+        assert(converterLogic_.getCurrentPeriodId() == 2);
+
+        vm.warp(startTime + 130 days);
+        assert(converterLogic_.getCurrentPeriodId() == 3);
+
+        vm.warp(startTime + 190 days);
+        assert(converterLogic_.getCurrentPeriodId() == 0);
     }
 
     /**
@@ -244,6 +369,55 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         assert(energy == expectedEnergy);
     }
 
+    function testLBAEnergyCalculation_with_lp_not_withdrawn() public skip(false) {
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        vm.prank(multisig);
+        converterLogic_.addPeriod(period);
+
+        vm.mockCall(
+            address(lba),
+            abi.encodeWithSelector(lba.lpTokenReleaseTime.selector),
+            abi.encode(uint256(startTime))
+        );
+
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(10));
+
+        vm.warp(startTime + 3 days);
+        uint256 lbaEnergy = converterLogic_.calculateAvailableLBAEnergy(someone, converterLogic_.getCurrentPeriodId());
+        uint256 expectedLBAEnergy = (10 * 3) * lbaLPMultiplier;
+        assert(lbaEnergy == expectedLBAEnergy);
+    }
+
+    function testLBAEnergyCalculation_with_lp_withdrawn() public skip(false) {
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period memory period = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        vm.prank(multisig);
+        converterLogic_.addPeriod(period);
+
+        vm.mockCall(
+            address(lba),
+            abi.encodeWithSelector(lba.lpTokenReleaseTime.selector),
+            abi.encode(uint256(startTime))
+        );
+
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(0));
+
+        vm.warp(startTime + 3 days);
+        uint256 lbaEnergy = converterLogic_.calculateAvailableLBAEnergy(someone, converterLogic_.getCurrentPeriodId());
+        assert(lbaEnergy == 0);
+    }
+
     /**
      * @notice GIVEN: Periods added to converter
      * @notice  AND: tokens staked
@@ -297,6 +471,98 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         vm.stopPrank();
         assert(converterLogic_.getConsumedEnergy(someone) == 85 * 10**18);
         assert(converterLogic_.getConsumedLBAEnergy(someone) == 15 * 10**18);
+    }
+
+    function testUseEnergy_with_lp_withdrawn_from_LBA() public skip(false) {
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period[] memory periods = new Period[](2);
+        periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+
+        vm.startPrank(multisig);
+        converterLogic_.addPeriods(periods);
+        vm.stopPrank();
+
+        vm.startPrank(address(controller_));
+
+        Stake[] memory astoHistory = new Stake[](1);
+        astoHistory[0] = Stake(startTime, 100);
+
+        vm.mockCall(
+            address(stakingLogic_),
+            abi.encodeWithSelector(stakingLogic_.getHistory.selector, 0, someone, uint256(endTime)),
+            abi.encode(astoHistory)
+        );
+        vm.mockCall(
+            address(stakingLogic_),
+            abi.encodeWithSelector(stakingLogic_.getHistory.selector, 1, someone, uint256(endTime)),
+            abi.encode(new Stake[](0))
+        );
+        vm.mockCall(
+            address(lba),
+            abi.encodeWithSelector(lba.lpTokenReleaseTime.selector),
+            abi.encode(uint256(startTime))
+        );
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(0));
+
+        vm.warp(startTime + 1 days);
+        converterLogic_.useEnergy(someone, 1, 100 * 10**18);
+        assert(converterLogic_.getConsumedEnergy(someone) == 100 * 10**18);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 0);
+    }
+
+    function testUseEnergy_with_lp_withdrawn_from_LBA_after_first_use() public skip(false) {
+        uint128 startTime = uint128(block.timestamp);
+        uint128 endTime = startTime + 60 days;
+        uint128 astoMultiplier = 1 * 10**18;
+        uint128 lpMultiplier = 1.36 * 10**18;
+        uint128 lbaLPMultiplier = 1.5 * 10**18;
+
+        Period[] memory periods = new Period[](2);
+        periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+        periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
+
+        vm.startPrank(multisig);
+        converterLogic_.addPeriods(periods);
+        vm.stopPrank();
+
+        vm.startPrank(address(controller_));
+
+        Stake[] memory astoHistory = new Stake[](1);
+        astoHistory[0] = Stake(startTime, 100);
+
+        vm.mockCall(
+            address(stakingLogic_),
+            abi.encodeWithSelector(stakingLogic_.getHistory.selector, 0, someone, uint256(endTime)),
+            abi.encode(astoHistory)
+        );
+        vm.mockCall(
+            address(stakingLogic_),
+            abi.encodeWithSelector(stakingLogic_.getHistory.selector, 1, someone, uint256(endTime)),
+            abi.encode(new Stake[](0))
+        );
+        vm.mockCall(
+            address(lba),
+            abi.encodeWithSelector(lba.lpTokenReleaseTime.selector),
+            abi.encode(uint256(startTime))
+        );
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(10));
+
+        vm.warp(startTime + 1 days);
+        converterLogic_.useEnergy(someone, 1, 10 * 10**18);
+        assert(converterLogic_.getConsumedEnergy(someone) == 0);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 10 * 10**18);
+
+        vm.mockCall(address(lba), abi.encodeWithSelector(lba.claimableLPAmount.selector), abi.encode(0));
+
+        converterLogic_.useEnergy(someone, 1, 5 * 10**18);
+        assert(converterLogic_.getConsumedEnergy(someone) == 5 * 10**18);
+        assert(converterLogic_.getConsumedLBAEnergy(someone) == 10 * 10**18);
     }
 
     /** ----------------------------------
