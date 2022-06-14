@@ -14,7 +14,7 @@ import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 import "../contracts/Converter.sol";
 import "../contracts/EnergyStorage.sol";
 
-import "ds-test/Test.sol";
+import "ds-test/test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 
