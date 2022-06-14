@@ -366,7 +366,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
 
         _updateRole(DAO_ROLE, dao);
         _updateRole(MULTISIG_ROLE, multisig);
-        _unpause();
 
         _initialized = true;
     }

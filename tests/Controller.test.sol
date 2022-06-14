@@ -174,7 +174,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         );
         assertEq(controller_.getConverterLogic(), address(converterLogic_), "Energy Storage should return old address");
 
-        controller_.pause();
+        // controller_.pause();
         bool isPaused = newStaker_.paused();
 
         assertTrue(isPaused, "Controller is assigned and has a correct role with new Staking contract");

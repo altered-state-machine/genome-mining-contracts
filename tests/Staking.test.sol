@@ -49,6 +49,13 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     address multisig = deployer; // for the testing we use deployer as a multisig
     address dao = deployer; // for the testing we use deployer as a dao
 
+    bytes32 user_role = keccak256("USER_ROLE");
+    bytes32 controller_role = keccak256("CONTROLLER_ROLE");
+    bytes32 multisig_role = keccak256("MULTISIG_ROLE");
+    bytes32 dao_role = keccak256("DAO_ROLE");
+    bytes32 staker_role = keccak256("STAKER_ROLE");
+    bytes32 converter_role = keccak256("CONVERTER_ROLE");
+
     /** ----------------------------------
      * ! Setup
      * ----------------------------------- */
@@ -89,6 +96,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
             address(energyStorage_),
             address(lbaEnergyStorage_)
         );
+        controller_.unpause();
     }
 
     function setupWallets() internal {
@@ -101,17 +109,6 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
      * ! Admin functions
      * ----------------------------------- */
 
-    function test_beforeAll() public view skip(true) {
-        console.log("Multisig", address(multisig));
-        console.log("Deployer", address(deployer));
-        console.log("Controller", address(controller_));
-        console.log("Staker", address(staker_));
-        console.log("ASTO Token", address(astoToken_));
-        console.log("LP Token", address(lpToken_));
-        console.log("ASTO Storage", address(astoStorage_));
-        console.log("LP Storage", address(lpStorage_));
-    }
-
     /**
      * @notice GIVEN: owner of this contract calls this function
      * @notice  WHEN: there are some tokens on the balance of this contract
@@ -121,7 +118,6 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     function testWithdraw_happy_path() public skip(true) {
         vm.prank(address(multisig));
         uint256 balanceBefore = astoToken_.balanceOf(address(staker_));
-        controller_.pause();
         vm.prank(address(multisig));
         staker_.withdraw(astoToken, deployer, amount);
         uint256 balanceAfter = astoToken_.balanceOf(address(staker_));
@@ -135,11 +131,13 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
      * @notice  THEN: specified amount of specified tokens is transferred to the specified address
      */
     function testWithdraw_not_an_owner() public skip(false) {
-        vm.prank(multisig);
         controller_.pause();
         vm.prank(someone);
-        // 0xa847d497b38b9e11833eac3ea03921b40e6d847c - someone
-        // 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08 - DAO_ROLE
+        assertEq(
+            dao_role,
+            bytes32(0x3b5d4cc60d3ec3516ee8ae083bd60934f6eb2a6c54b1229985c41bfb092b2603),
+            "DAO role is not a DAO role"
+        );
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x3b5d4cc60d3ec3516ee8ae083bd60934f6eb2a6c54b1229985c41bfb092b2603"
         );

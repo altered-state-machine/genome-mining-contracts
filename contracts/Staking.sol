@@ -97,7 +97,6 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         _storage[1] = StakingStorage(lpStorage);
 
         _updateRole(DAO_ROLE, dao);
-        _unpause();
         _initialized = true;
     }
 
