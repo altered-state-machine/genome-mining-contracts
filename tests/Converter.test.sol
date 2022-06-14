@@ -10,7 +10,7 @@ import "../contracts/helpers/IConverter.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
-import "ds-test/Test.sol";
+import "ds-test/test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 

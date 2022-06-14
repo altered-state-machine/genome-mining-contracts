@@ -8,7 +8,7 @@ import "../contracts/Converter.sol";
 import "../contracts/helpers/IConverter.sol";
 import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
-import "ds-test/Test.sol";
+import "ds-test/test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 
