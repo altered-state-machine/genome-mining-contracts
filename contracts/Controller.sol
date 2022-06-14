@@ -159,6 +159,8 @@ contract Controller is Util, PermissionControl {
             IERC20(_lpToken),
             address(_lpStorage)
         );
+        _astoStorage.setConsumer(address(newContract));
+        _lpStorage.setConsumer(address(newContract));
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
@@ -193,6 +195,8 @@ contract Controller is Util, PermissionControl {
             address(_lbaEnergyStorage),
             address(_stakingLogic)
         );
+        _lbaEnergyStorage.setConsumer(address(newContract));
+        _energyStorage.setConsumer(address(newContract));
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
@@ -206,6 +210,16 @@ contract Controller is Util, PermissionControl {
         _lbaEnergyStorage = EnergyStorage(newContract);
         _lbaEnergyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "LBA Energy Storage", address(this), newContract);
+    }
+
+    function _setMintingContract(address newContract) private {
+        _converterLogic.setConsumer(address(newContract));
+        emit ContractUpgraded(
+            block.timestamp,
+            "Converter Logic - new Minting contract set",
+            address(this),
+            newContract
+        );
     }
 
     /** ----------------------------------
@@ -275,6 +289,10 @@ contract Controller is Util, PermissionControl {
 
     function setLBAEnergyStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setLBAEnergyStorage(newContract);
+    }
+
+    function setMintingContract(address newContract) external onlyRole(DAO_ROLE) {
+        _setMintingContract(newContract);
     }
 
     // DAO and MULTISIG can call this function

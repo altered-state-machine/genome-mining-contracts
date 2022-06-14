@@ -93,7 +93,7 @@ contract EnergyStorageTestContract is DSTest, IConverter, Util {
     function testIncreaseConsumedAmount_not_a_converter() public skip(false) {
         vm.startPrank(someone);
         vm.expectRevert(
-            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x1cf336fddcc7dc48127faf7a5b80ee54fce73ef647eecd31c24bb6cce3ac3eef"
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x9d56108290ea0bc9c5c59c3ad357dca9d1b29ed7f3ae1443bef2fa2159bdf5e8"
         );
         energyStorage_.increaseConsumedAmount(someone, 100);
     }

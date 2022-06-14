@@ -8,12 +8,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  * @dev ASM Genome Mining - PermissionControl contract
  */
 
-bytes32 constant USER_ROLE = keccak256("USER_ROLE");
 bytes32 constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
 bytes32 constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
 bytes32 constant DAO_ROLE = keccak256("DAO_ROLE");
-bytes32 constant STAKER_ROLE = keccak256("STAKER_ROLE");
-bytes32 constant CONVERTER_ROLE = keccak256("CONVERTER_ROLE");
+bytes32 constant CONSUMER_ROLE = keccak256("CONSUMER_ROLE");
 
 contract PermissionControl is AccessControl {
     /**

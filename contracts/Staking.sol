@@ -108,14 +108,26 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         _updateRole(DAO_ROLE, newDao);
     }
 
+    /**
+     * @dev Update the Controller contract address
+     * @dev only controller is allowed to call this function
+     */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
     }
 
+    /**
+     * @dev Pause the contract
+     * @dev only controller is allowed to call this function
+     */
     function pause() external onlyRole(CONTROLLER_ROLE) {
         _pause();
     }
 
+    /**
+     * @dev Unpause the contract
+     * @dev only controller is allowed to call this function
+     */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
     }
@@ -133,7 +145,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      *
      * @dev Prerequisite:
      * @dev - amount of tokens to stake should be approved by user.
-     * @dev - this contract should have a `STAKER_ROLE` to call
+     * @dev - this contract should have a `CONSUMER_ROLE` to call
      * @dev   the storage's `updateHistory()` function.
      *
      * @dev Depending on tokenId passed, it:

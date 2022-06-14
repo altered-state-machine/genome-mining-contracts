@@ -135,7 +135,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     function testUpdateHistory_not_a_staker() public skipFailing(false) {
         vm.prank(someone);
         vm.expectRevert(
-            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xb9e206fa2af7ee1331b72ce58b6d938ac810ce9b5cdb65d35ab723fd67badf9e"
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x9d56108290ea0bc9c5c59c3ad357dca9d1b29ed7f3ae1443bef2fa2159bdf5e8"
         );
         astoStorage_.updateHistory(deployer, 10);
     }

@@ -49,12 +49,10 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     address multisig = deployer; // for the testing we use deployer as a multisig
     address dao = deployer; // for the testing we use deployer as a dao
 
-    bytes32 user_role = keccak256("USER_ROLE");
+    bytes32 consumer_role = keccak256("CONSUMER_ROLE");
     bytes32 controller_role = keccak256("CONTROLLER_ROLE");
     bytes32 multisig_role = keccak256("MULTISIG_ROLE");
     bytes32 dao_role = keccak256("DAO_ROLE");
-    bytes32 staker_role = keccak256("STAKER_ROLE");
-    bytes32 converter_role = keccak256("CONVERTER_ROLE");
 
     /** ----------------------------------
      * ! Setup

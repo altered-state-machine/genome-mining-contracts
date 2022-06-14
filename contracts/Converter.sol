@@ -54,7 +54,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         _grantRole(CONTROLLER_ROLE, controller);
         _grantRole(DAO_ROLE, controller);
         _grantRole(MULTISIG_ROLE, controller);
-        _grantRole(USER_ROLE, controller);
+        _grantRole(CONSUMER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
@@ -185,7 +185,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         address addr,
         uint256 periodId,
         uint256 amount
-    ) external whenNotPaused onlyRole(USER_ROLE) {
+    ) external whenNotPaused onlyRole(CONSUMER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
@@ -261,7 +261,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * ----------------------------------- */
 
     function setUser(address addr) external onlyRole(DAO_ROLE) {
-        _updateRole(USER_ROLE, addr);
+        _updateRole(CONSUMER_ROLE, addr);
     }
 
     /** ----------------------------------
@@ -388,11 +388,19 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /**
-     * @dev Update the controller contract address
+     * @dev Update the Controller contract address
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    /**
+     * @dev Update the Consumer contract address
+     * @dev only controller is allowed to call this function
+     */
+    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONSUMER_ROLE, consumer);
     }
 
     /**
