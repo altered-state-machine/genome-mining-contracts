@@ -51,10 +51,10 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
-        _grantRole(CONTROLLER_ROLE, controller);
-        _grantRole(DAO_ROLE, controller);
-        _grantRole(MULTISIG_ROLE, controller);
-        _grantRole(CONSUMER_ROLE, controller);
+        _setupRole(CONTROLLER_ROLE, controller);
+        _setupRole(DAO_ROLE, controller);
+        _setupRole(MULTISIG_ROLE, controller);
+        _setupRole(CONSUMER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
