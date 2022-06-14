@@ -12,28 +12,31 @@ Status: <br>
 
 ## Terms
 
-- **Manager** - DAO address, all the decisions should be made/approved by the majority of members.
+- **DAO** - DAO address, all the decisions should be made/approved by the majority of members.
+- **MULTISIG** - MULTISIG address owned by ASM.
 - **Controller** - Contract, which purpose is mainly to reduce the number of votes required to upgrade other contracts.
 
 _Contoller perform operations that require updating more than a one contract, while Manager does a specific (one contract related) operations._
 
 <br>
 
-## Manager use cases
+## Multisig use cases
 
 ![Energy Converter Manager use cases](assets/converter_manager.png)
 
 ### Setup new mining period `addPeriod()`
 
-Manager can set up a new mining period: start, finish, and token multipliers.
+Multisig can set up a new mining period: start, finish, and token multipliers.
 
 ### Update existing mining period `updatePeriod()`
 
-Manager can update a mining period: start, finish, and token multipliers.
+Multisig can update a mining period: start, finish, and token multipliers.
+
+## DAO use cases
 
 ### Set Minting contract that can use energy `setUser()`
 
-The Manager can set/update the address of the logic contract that is allowed to use Energy.
+The DAO can set/update the address of the logic contract that is allowed to use Energy.
 
 <br>
 
@@ -53,9 +56,13 @@ The Controller can unpause paused contract to allow staking and unstaking again.
 
 The Controller can update `CONTROLLER_ROLE` to assign another Controller contract in case it's upgraded.
 
-### Update Manager contract address (OZ AccessControl.sol) `setManager()`
+### Update DAO contract address (OZ AccessControl.sol) `setDao()`
 
-The Controller can update `DAO_ROLE` to assign Manager (DAO multisig) contract that can perform manager functions (setup periods).
+The Controller can update `DAO_ROLE` to assign DAO contract that can setup Energy User contract.
+
+### Update MULTISIG contract address (OZ AccessControl.sol) `setMultisig()`
+
+The Controller can update `MULTISIG_ROLE` to assign Multisig contract that can setup periods.
 
 ### Initialize contract `init()`
 
