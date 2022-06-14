@@ -19,9 +19,9 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     bool private _initialized = false;
 
     // Incrementing stake Id used to record history
-    mapping(address => uint256) private _stakeIds;
+    mapping(address => uint256) public stakeIds;
     // Store stake history per each address keyed by stake Id
-    mapping(address => mapping(uint256 => Stake)) private _stakeHistory;
+    mapping(address => mapping(uint256 => Stake)) public stakeHistory;
 
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
@@ -46,8 +46,8 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
 
         uint128 time = uint128(currentTime());
         Stake memory newStake = Stake(time, amount);
-        uint256 userStakeId = ++_stakeIds[addr]; // ++i cheaper than i++, so, _stakeHistory[addr] starts from 1
-        _stakeHistory[addr][userStakeId] = newStake;
+        uint256 userStakeId = ++stakeIds[addr]; // ++i cheaper than i++, so, stakeHistory[addr] starts from 1
+        stakeHistory[addr][userStakeId] = newStake;
         return userStakeId;
     }
 
@@ -56,13 +56,13 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * ----------------------------------- */
 
     function getHistory(address addr, uint256 endTime) external view returns (Stake[] memory) {
-        uint256 totalStakes = _stakeIds[addr];
+        uint256 totalStakes = stakeIds[addr];
 
         Stake[] memory stakes = new Stake[](totalStakes); // suboptimal - it could be larger than needed, when endTime is lesser than current time
 
-        // _stakeHistory[addr] starts from 1, see `updateHistory`
+        // stakeHistory[addr] starts from 1, see `updateHistory`
         for (uint256 i = 1; i < totalStakes + 1; i++) {
-            Stake memory stake = _stakeHistory[addr][i];
+            Stake memory stake = stakeHistory[addr][i];
             if (stake.time <= endTime) stakes[i - 1] = stake;
             else {
                 // shortening array before returning
@@ -75,11 +75,11 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     }
 
     function getStake(address addr, uint256 id) external view returns (Stake memory) {
-        return _stakeHistory[addr][id];
+        return stakeHistory[addr][id];
     }
 
     function getUserLastStakeId(address addr) external view returns (uint256) {
-        return _stakeIds[addr];
+        return stakeIds[addr];
     }
 
     /**
