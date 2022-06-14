@@ -10,7 +10,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 bytes32 constant USER_ROLE = keccak256("USER_ROLE");
 bytes32 constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
-bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+bytes32 constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+bytes32 constant DAO_ROLE = keccak256("DAO_ROLE");
 bytes32 constant STAKER_ROLE = keccak256("STAKER_ROLE");
 bytes32 constant CONVERTER_ROLE = keccak256("CONVERTER_ROLE");
 

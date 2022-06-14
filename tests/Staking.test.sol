@@ -47,6 +47,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+    address dao = deployer; // for the testing we use deployer as a dao
 
     /** ----------------------------------
      * ! Setup
@@ -78,6 +79,7 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
+            address(dao),
             address(astoToken_),
             address(astoStorage_),
             address(lpToken_),
@@ -137,9 +139,9 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         controller_.pause();
         vm.prank(someone);
         // 0xa847d497b38b9e11833eac3ea03921b40e6d847c - someone
-        // 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08 - MANAGER_ROLE
+        // 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08 - DAO_ROLE
         vm.expectRevert(
-            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08"
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x3b5d4cc60d3ec3516ee8ae083bd60934f6eb2a6c54b1229985c41bfb092b2603"
         );
         staker_.withdraw(astoToken, deployer, amount);
     }

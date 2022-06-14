@@ -32,6 +32,7 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+    address dao = deployer; // for the testing we use deployer as a dao
 
     /** ----------------------------------
      * ! Setup
@@ -56,7 +57,13 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         vm.startPrank(address(controller_));
         energyStorage_.init(address(converterLogic_));
         lbaEnergyStorage_.init(address(converterLogic_));
-        converterLogic_.init(multisig, address(energyStorage_), address(lbaEnergyStorage_), address(stakingLogic_));
+        converterLogic_.init(
+            dao,
+            multisig,
+            address(energyStorage_),
+            address(lbaEnergyStorage_),
+            address(stakingLogic_)
+        );
         vm.stopPrank();
     }
 

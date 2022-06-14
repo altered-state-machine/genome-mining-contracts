@@ -55,7 +55,7 @@ The Controller can update `CONTROLLER_ROLE` to assign another Controller contrac
 
 ### Update Manager contract address (OZ AccessControl.sol) `setManager()`
 
-The Controller can update `MANAGER_ROLE` to assign Manager (DAO multisig) contract that can perform manager functions (setup periods).
+The Controller can update `DAO_ROLE` to assign Manager (DAO multisig) contract that can perform manager functions (setup periods).
 
 ### Initialize contract `init()`
 

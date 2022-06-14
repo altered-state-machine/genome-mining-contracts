@@ -52,6 +52,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
         _grantRole(CONTROLLER_ROLE, controller);
+        _grantRole(DAO_ROLE, controller);
+        _grantRole(MULTISIG_ROLE, controller);
         _grantRole(USER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
@@ -255,11 +257,46 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Administration          | MANAGER
+     * ! Administration              | DAO
      * ----------------------------------- */
 
-    function setUser(address addr) external onlyRole(MANAGER_ROLE) {
+    function setUser(address addr) external onlyRole(DAO_ROLE) {
         _updateRole(USER_ROLE, addr);
+    }
+
+    /** ----------------------------------
+     * ! Administration         | Multisig
+     * ----------------------------------- */
+
+    /**
+     * @dev Add new periods
+     * @dev Only dao contract has the permission to call this function
+     *
+     * @param _periods The list of periods to be added
+     */
+    function addPeriods(Period[] memory _periods) public onlyRole(MULTISIG_ROLE) {
+        _addPeriods(_periods);
+    }
+
+    /**
+     * @dev Add a new period
+     * @dev Only dao contract has the permission to call this function
+     *
+     * @param period The period instance to add
+     */
+    function addPeriod(Period memory period) external onlyRole(MULTISIG_ROLE) {
+        _addPeriod(period);
+    }
+
+    /**
+     * @dev Update a period
+     * @dev Only dao contract has the permission to call this function
+     *
+     * @param periodId The period id to update
+     * @param period The period data to update
+     */
+    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MULTISIG_ROLE) {
+        _updatePeriod(periodId, period);
     }
 
     /**
@@ -275,16 +312,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /**
-     * @dev Add new periods
-     * @dev Only manager contract has the permission to call this function
-     *
-     * @param _periods The list of periods to be added
-     */
-    function addPeriods(Period[] memory _periods) public onlyRole(MANAGER_ROLE) {
-        _addPeriods(_periods);
-    }
-
-    /**
      * @dev Add a new period
      * @dev This is an internal function
      *
@@ -293,16 +320,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function _addPeriod(Period memory period) private {
         periods[++periodIdCounter] = period;
         emit PeriodAdded(currentTime(), periodIdCounter, period);
-    }
-
-    /**
-     * @dev Add a new period
-     * @dev Only manager contract has the permission to call this function
-     *
-     * @param period The period instance to add
-     */
-    function addPeriod(Period memory period) external onlyRole(MANAGER_ROLE) {
-        _addPeriod(period);
     }
 
     /**
@@ -318,17 +335,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         emit PeriodUpdated(currentTime(), periodId, period);
     }
 
-    /**
-     * @dev Update a period
-     * @dev Only manager contract has the permission to call this function
-     *
-     * @param periodId The period id to update
-     * @param period The period data to update
-     */
-    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MANAGER_ROLE) {
-        _updatePeriod(periodId, period);
-    }
-
     /** ----------------------------------
      * ! Administration       | CONTROLLER
      * ----------------------------------- */
@@ -337,12 +343,13 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev Initialize the contract:
      * @dev only controller is allowed to call this function
      *
-     * @param manager The manager contract address
+     * @param dao The dao contract address
      * @param energyStorage The energy storage contract address
      * @param stakingLogic The staking logic contrct address
      */
     function init(
-        address manager,
+        address dao,
+        address multisig,
         address energyStorage,
         address lbaEnergyStorage,
         address stakingLogic
@@ -357,18 +364,28 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         energyStorage_ = EnergyStorage(energyStorage);
         lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
-        _grantRole(MANAGER_ROLE, manager);
+        _updateRole(DAO_ROLE, dao);
+        _updateRole(MULTISIG_ROLE, multisig);
         _unpause();
 
         _initialized = true;
     }
 
     /**
-     * @dev Update the manager contract address
-     * @dev only manager is allowed to call this function
+     * @dev Update the DAO contract address
+     * @dev only Controller is allowed to change the address of DAO contract
      */
-    function setManager(address newManager) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(MANAGER_ROLE, newManager);
+    function setDao(address newDao) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(DAO_ROLE, newDao);
+    }
+
+    /**
+     * @dev Update the Multisig contract address
+     * @dev only Controller is allowed to change the address of Multisig contract
+     */
+    function setMultisig(address newMultisig, address dao) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(MULTISIG_ROLE, newMultisig);
+        _grantRole(MULTISIG_ROLE, dao);
     }
 
     /**

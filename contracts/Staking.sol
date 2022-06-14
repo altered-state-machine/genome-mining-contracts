@@ -37,12 +37,12 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
         _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(MANAGER_ROLE, controller);
+        _setupRole(DAO_ROLE, controller);
         _pause();
     }
 
     /** ----------------------------------
-     * ! Administration          | MANAGER
+     * ! Administration          | dao
      * ----------------------------------- */
 
     /**
@@ -58,7 +58,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
     )
         external
         whenPaused // when contract is paused ONLY
-        onlyRole(MANAGER_ROLE)
+        onlyRole(DAO_ROLE)
     {
         if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
@@ -73,7 +73,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
     /**
      * @dev Setting up persmissions for this contract:
-     * @dev only Manager is allowed to call admin functions
+     * @dev only DAO contract is allowed to call admin functions
      * @dev only controller is allowed to update permissions - to reduce amount of DAO votings
      *
      * @param astoToken ASTO Token contract address
@@ -82,7 +82,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      * @param lpStorage LP staking storage contract address
      */
     function init(
-        address manager,
+        address dao,
         IERC20 astoToken,
         address astoStorage,
         IERC20 lpToken,
@@ -96,17 +96,17 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         _token[1] = lpToken;
         _storage[1] = StakingStorage(lpStorage);
 
-        _updateRole(MANAGER_ROLE, manager);
+        _updateRole(DAO_ROLE, dao);
         _unpause();
         _initialized = true;
     }
 
     /**
-     * @dev Update the manager contract address
-     * @dev only manager is allowed to call this function
+     * @dev Update the DAO contract address
+     * @dev only controller is allowed to set new DAO contract
      */
-    function setManager(address newManager) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(MANAGER_ROLE, newManager);
+    function setDao(address newDao) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(DAO_ROLE, newDao);
     }
 
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
@@ -189,7 +189,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
         uint256 newAmount = userBalance - amount;
         _storage[tokenId].updateHistory(user, newAmount);
-        _totalStakedAmount[tokenId] -= amount; // TODO: add tests for checking totalAmount
+        _totalStakedAmount[tokenId] -= amount;
 
         _token[tokenId].safeTransfer(user, amount);
 

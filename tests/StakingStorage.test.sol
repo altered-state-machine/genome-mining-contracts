@@ -44,6 +44,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+    address dao = deployer; // for the testing we use deployer as a dao
 
     /** ----------------------------------
      * ! Setup
@@ -75,6 +76,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
+            address(dao),
             address(astoToken_),
             address(astoStorage_),
             address(lpToken_),

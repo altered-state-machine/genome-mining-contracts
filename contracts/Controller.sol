@@ -25,18 +25,25 @@ contract Controller is Util, PermissionControl {
     EnergyStorage private _lbaEnergyStorage;
     IERC20 private _astoToken;
     IERC20 private _lpToken;
-
-    address private _manager; // DAO multisig contract, public for auto getter
+    address private _dao;
+    address private _multisig;
 
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
     constructor(address multisig) {
         if (!_isContract(multisig)) revert InvalidInput(INVALID_MULTISIG);
-        _manager = multisig;
-        _setupRole(MANAGER_ROLE, multisig); // `RoleGranted` event will be emitted
+        /**
+         * MULTISIG_ROLE is ONLY used for:
+         * - initalisation controller
+         * - setting periods (mining cycles) for the Converter contract
+         */
+        _setupRole(MULTISIG_ROLE, multisig);
+        _setupRole(DAO_ROLE, multisig);
+        _multisig = multisig;
     }
 
     function init(
+        address dao,
         address astoToken,
         address astoStorage,
         address lpToken,
@@ -45,7 +52,8 @@ contract Controller is Util, PermissionControl {
         address converterLogic,
         address energyStorage,
         address lbaEnergyStorage
-    ) external onlyRole(MANAGER_ROLE) {
+    ) external onlyRole(MULTISIG_ROLE) {
+        if (!_isContract(dao)) revert InvalidInput(INVALID_DAO);
         if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
         if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
         if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
@@ -55,7 +63,10 @@ contract Controller is Util, PermissionControl {
         if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
         if (!_isContract(lbaEnergyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
 
+        _updateRole(DAO_ROLE, dao); // remove MULTISIG address from DAO_ROLE
+
         // Saving addresses on init:
+        _dao = dao;
         _astoToken = IERC20(astoToken);
         _astoStorage = StakingStorage(astoStorage);
         _lpToken = IERC20(lpToken);
@@ -112,9 +123,21 @@ contract Controller is Util, PermissionControl {
         if (_isContract(controller)) _setController(controller);
     }
 
-    function _setManager(address multisig) private {
-        _manager = multisig;
-        _updateRole(MANAGER_ROLE, multisig);
+    function _setDao(address dao) private {
+        if (dao != _dao) {
+            _dao = dao;
+            _updateRole(DAO_ROLE, dao);
+            _stakingLogic.setDao(dao);
+            _converterLogic.setDao(dao);
+        }
+        _grantRole(MULTISIG_ROLE, dao);
+    }
+
+    function _setMultisig(address multisig) private {
+        _multisig = multisig;
+        _updateRole(MULTISIG_ROLE, multisig);
+        _setDao(_dao); // to grant MULTISIG_ROLE to DAO (DAO itself won't be updated)
+        _converterLogic.setMultisig(multisig, _dao);
     }
 
     function _setController(address newContract) private {
@@ -130,7 +153,7 @@ contract Controller is Util, PermissionControl {
     function _setStakingLogic(address newContract) private {
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
-            address(_manager),
+            address(_dao),
             IERC20(_astoToken),
             address(_astoStorage),
             IERC20(_lpToken),
@@ -164,7 +187,8 @@ contract Controller is Util, PermissionControl {
     function _setConverterLogic(address newContract) private {
         _converterLogic = Converter(newContract);
         _converterLogic.init(
-            address(_manager),
+            address(_dao),
+            address(_multisig),
             address(_energyStorage),
             address(_lbaEnergyStorage),
             address(_stakingLogic)
@@ -190,7 +214,7 @@ contract Controller is Util, PermissionControl {
 
     /**
      * @notice The way to upgrade contracts
-     * @notice Only Manager address (multisig wallet) has access to upgrade
+     * @notice Only Manager address (_dao wallet) has access to upgrade
      * @notice All parameters are optional
      */
     function upgradeContracts(
@@ -203,7 +227,7 @@ contract Controller is Util, PermissionControl {
         address converterLogic,
         address energyStorage,
         address lbaEnergyStorage
-    ) external onlyRole(MANAGER_ROLE) {
+    ) external onlyRole(DAO_ROLE) {
         _upgradeContracts(
             controller,
             astoToken,
@@ -217,46 +241,50 @@ contract Controller is Util, PermissionControl {
         );
     }
 
-    function setManager(address multisig) external onlyRole(MANAGER_ROLE) {
-        _setManager(multisig);
-        _stakingLogic.setManager(multisig);
-        _converterLogic.setManager(multisig);
+    function setDao(address dao) external onlyRole(DAO_ROLE) {
+        _setDao(dao);
     }
 
-    function setController(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setMultisig(address multisig) external onlyRole(DAO_ROLE) {
+        _setMultisig(multisig);
+    }
+
+    function setController(address newContract) external onlyRole(DAO_ROLE) {
         _setController(newContract);
     }
 
-    function setStakingLogic(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setStakingLogic(address newContract) external onlyRole(DAO_ROLE) {
         _setStakingLogic(newContract);
     }
 
-    function setAstoStorage(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setAstoStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setAstoStorage(newContract);
     }
 
-    function setLpStorage(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setLpStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setLpStorage(newContract);
     }
 
-    function setConverterLogic(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setConverterLogic(address newContract) external onlyRole(DAO_ROLE) {
         _setConverterLogic(newContract);
     }
 
-    function setEnergyStorage(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setEnergyStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setEnergyStorage(newContract);
     }
 
-    function setLBAEnergyStorage(address newContract) external onlyRole(MANAGER_ROLE) {
+    function setLBAEnergyStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setLBAEnergyStorage(newContract);
     }
 
-    function pause() external onlyRole(MANAGER_ROLE) {
+    // DAO and MULTISIG can call this function
+    function pause() external onlyRole(MULTISIG_ROLE) {
         _stakingLogic.pause();
         _converterLogic.pause();
     }
 
-    function unpause() external onlyRole(MANAGER_ROLE) {
+    // DAO and MULTISIG can call this function
+    function unpause() external onlyRole(MULTISIG_ROLE) {
         _stakingLogic.unpause();
         _converterLogic.unpause();
     }
@@ -269,8 +297,12 @@ contract Controller is Util, PermissionControl {
         return address(this);
     }
 
-    function getManager() public view returns (address) {
-        return _manager;
+    function getDao() public view returns (address) {
+        return _dao;
+    }
+
+    function getMultisig() public view returns (address) {
+        return _multisig;
     }
 
     function getStakingLogic() public view returns (address) {
