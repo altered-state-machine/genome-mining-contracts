@@ -11,6 +11,7 @@ contract Util {
 
     string constant ALREADY_INITIALIZED = "The contract has already been initialized";
     string constant INVALID_MULTISIG = "Invalid Multisig contract";
+    string constant INVALID_DAO = "Invalid DAO contract";
     string constant INVALID_CONTROLLER = "Invalid Controller contract";
     string constant INVALID_STAKING_LOGIC = "Invalid Staking Logic contract";
     string constant INVALID_STAKING_STORAGE = "Invalid Staking Storage contract";

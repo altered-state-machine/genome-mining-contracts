@@ -7,6 +7,7 @@ import "../contracts/EnergyStorage.sol";
 import "../contracts/Controller.sol";
 import "../contracts/Staking.sol";
 import "../contracts/helpers/IConverter.sol";
+import "../contracts/mocks/MockedERC20.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
 
@@ -23,6 +24,12 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     Converter converterLogic_;
     Controller controller_;
     Staking stakingLogic_;
+    StakingStorage astoStorage_;
+    StakingStorage lpStorage_;
+    MockedERC20 astoToken_;
+    MockedERC20 lpToken_;
+
+    uint256 initialBalance = 100e18;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -32,6 +39,7 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+    address dao = deployer; // for the testing we use deployer as a dao
 
     /** ----------------------------------
      * ! Setup
@@ -42,22 +50,37 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
+        setupTokens(); // mock tokens
         setupContracts();
         setupWallets();
     }
 
     function setupContracts() internal {
         controller_ = new Controller(multisig);
+        astoStorage_ = new StakingStorage(address(controller_));
+        lpStorage_ = new StakingStorage(address(controller_));
         energyStorage_ = new EnergyStorage(address(controller_));
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
         converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
         stakingLogic_ = new Staking(address(controller_));
 
-        vm.startPrank(address(controller_));
-        energyStorage_.init(address(converterLogic_));
-        lbaEnergyStorage_.init(address(converterLogic_));
-        converterLogic_.init(multisig, address(energyStorage_), address(lbaEnergyStorage_), address(stakingLogic_));
-        vm.stopPrank();
+        controller_.init(
+            address(dao),
+            address(astoToken_),
+            address(astoStorage_),
+            address(lpToken_),
+            address(lpStorage_),
+            address(stakingLogic_),
+            address(converterLogic_),
+            address(energyStorage_),
+            address(lbaEnergyStorage_)
+        );
+        controller_.unpause();
+    }
+
+    function setupTokens() internal {
+        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
+        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
     }
 
     function setupWallets() internal {

@@ -46,6 +46,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
+    address dao = deployer; // for the testing we use deployer as a dao
 
     /** ----------------------------------
      * ! Setup
@@ -77,6 +78,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
         controller_.init(
+            address(dao),
             address(astoToken_),
             address(astoStorage_),
             address(lpToken_),
@@ -111,7 +113,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     function testUpgradeContracts_wrong_role() public skip(false) {
         vm.prank(address(someone)); // someone address - 0xa847d497b38b9e11833eac3ea03921b40e6d847c
         vm.expectRevert(
-            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08"
+            "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x3b5d4cc60d3ec3516ee8ae083bd60934f6eb2a6c54b1229985c41bfb092b2603"
         );
         controller_.upgradeContracts(
             address(0),
@@ -172,7 +174,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         );
         assertEq(controller_.getConverterLogic(), address(converterLogic_), "Energy Storage should return old address");
 
-        controller_.pause();
+        // controller_.pause();
         bool isPaused = newStaker_.paused();
 
         assertTrue(isPaused, "Controller is assigned and has a correct role with new Staking contract");

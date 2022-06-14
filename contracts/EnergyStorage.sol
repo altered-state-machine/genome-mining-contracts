@@ -17,7 +17,8 @@ contract EnergyStorage is Util, PermissionControl {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
-        _grantRole(CONTROLLER_ROLE, controller);
+        _setupRole(CONTROLLER_ROLE, controller);
+        _setupRole(CONSUMER_ROLE, controller);
     }
 
     /**
@@ -27,7 +28,7 @@ contract EnergyStorage is Util, PermissionControl {
      * @param addr The wallet address which consumed the energy
      * @param amount The amount of consumed energy
      */
-    function increaseConsumedAmount(address addr, uint256 amount) external onlyRole(CONVERTER_ROLE) {
+    function increaseConsumedAmount(address addr, uint256 amount) external onlyRole(CONSUMER_ROLE) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         consumedAmount[addr] += amount;
     }
@@ -46,15 +47,23 @@ contract EnergyStorage is Util, PermissionControl {
         if (_initialized) revert ContractError(ALREADY_INITIALIZED);
         if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
-        _setupRole(CONVERTER_ROLE, converterLogic);
+        _updateRole(CONSUMER_ROLE, converterLogic);
         _initialized = true;
     }
 
     /**
-     * @dev Update the controller contract address
+     * @dev Update the Controller contract address
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    /**
+     * @dev Update the Consumer contract address
+     * @dev only controller is allowed to call this function
+     */
+    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONSUMER_ROLE, consumer);
     }
 }

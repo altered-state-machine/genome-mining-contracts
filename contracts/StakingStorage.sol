@@ -26,7 +26,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
         _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(STAKER_ROLE, controller);
+        _setupRole(CONSUMER_ROLE, controller);
     }
 
     /** ----------------------------------
@@ -41,7 +41,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param amount - amount of tokens to stake
      * @return stakeID
      */
-    function updateHistory(address addr, uint256 amount) public onlyRole(STAKER_ROLE) returns (uint256) {
+    function updateHistory(address addr, uint256 amount) public onlyRole(CONSUMER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
         uint128 time = uint128(currentTime());
@@ -99,7 +99,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
 
     /**
      * @dev Setting up persmissions for this contract:
-     * @dev only Staker is allowed to save into this storage
+     * @dev only Consumer is allowed to save into this storage
      * @dev only Controller is allowed to update permissions - to reduce amount of DAO votings
      * @dev
      *
@@ -108,11 +108,23 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      */
     function init(address stakingLogic) external onlyRole(CONTROLLER_ROLE) {
         require(_initialized == false, ALREADY_INITIALIZED);
-        _updateRole(STAKER_ROLE, stakingLogic);
+        _updateRole(CONSUMER_ROLE, stakingLogic);
         _initialized = true;
     }
 
+    /**
+     * @dev Update the Controller contract address
+     * @dev only controller is allowed to call this function
+     */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _updateRole(CONTROLLER_ROLE, newController);
+    }
+
+    /**
+     * @dev Update the Consumer contract address
+     * @dev only controller is allowed to call this function
+     */
+    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
+        _updateRole(CONSUMER_ROLE, consumer);
     }
 }
