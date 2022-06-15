@@ -64,7 +64,8 @@ contract Controller is Util, PermissionControl {
             if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
             if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
             if (!_isContract(lbaEnergyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
-            _updateRole(DAO_ROLE, dao); // remove MULTISIG address from DAO_ROLE
+            _clearRole(DAO_ROLE);
+            _grantRole(DAO_ROLE, dao);
 
             // Saving addresses on init:
             _dao = dao;
@@ -124,19 +125,19 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setDao(address dao) internal {
-        if (dao != _dao) {
-            _dao = dao;
-            _updateRole(DAO_ROLE, dao);
-            _stakingLogic.setDao(dao);
-            _converterLogic.setDao(dao);
-        }
+        _dao = dao;
+        _clearRole(DAO_ROLE);
+        _grantRole(DAO_ROLE, dao);
         _grantRole(MULTISIG_ROLE, dao);
+        _stakingLogic.setDao(dao);
+        _converterLogic.setDao(dao);
     }
 
     function _setMultisig(address multisig) internal {
         _multisig = multisig;
-        _updateRole(MULTISIG_ROLE, multisig);
-        _setDao(_dao); // to grant MULTISIG_ROLE to DAO (DAO itself won't be updated)
+        _clearRole(MULTISIG_ROLE);
+        _grantRole(MULTISIG_ROLE, multisig);
+        _grantRole(MULTISIG_ROLE, _dao);
         _converterLogic.setMultisig(multisig, _dao);
     }
 

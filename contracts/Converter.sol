@@ -259,14 +259,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Administration              | DAO
-     * ----------------------------------- */
-
-    function setUser(address addr) external onlyRole(DAO_ROLE) {
-        _updateRole(CONSUMER_ROLE, addr);
-    }
-
-    /** ----------------------------------
      * ! Administration         | Multisig
      * ----------------------------------- */
 
@@ -365,8 +357,11 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
             energyStorage_ = EnergyStorage(energyStorage);
             lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
-            _updateRole(DAO_ROLE, dao);
-            _updateRole(MULTISIG_ROLE, multisig);
+            _clearRole(DAO_ROLE);
+            _grantRole(DAO_ROLE, dao);
+
+            _clearRole(MULTISIG_ROLE);
+            _grantRole(MULTISIG_ROLE, multisig);
 
             _initialized = true;
         }
@@ -377,7 +372,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only Controller is allowed to change the address of DAO contract
      */
     function setDao(address newDao) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(DAO_ROLE, newDao);
+        _clearRole(DAO_ROLE);
+        _grantRole(DAO_ROLE, newDao);
     }
 
     /**
@@ -385,7 +381,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only Controller is allowed to change the address of Multisig contract
      */
     function setMultisig(address newMultisig, address dao) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(MULTISIG_ROLE, newMultisig);
+        _clearRole(MULTISIG_ROLE);
+        _grantRole(MULTISIG_ROLE, newMultisig);
         _grantRole(MULTISIG_ROLE, dao);
     }
 
@@ -394,7 +391,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 
     /**
@@ -402,7 +400,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONSUMER_ROLE, consumer);
+        _clearRole(CONSUMER_ROLE);
+        _grantRole(CONSUMER_ROLE, consumer);
     }
 
     /**

@@ -108,7 +108,8 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      */
     function init(address stakingLogic) external onlyRole(CONTROLLER_ROLE) {
         if (!_initialized) {
-            _updateRole(CONSUMER_ROLE, stakingLogic);
+            _clearRole(CONSUMER_ROLE);
+            _grantRole(CONSUMER_ROLE, stakingLogic);
             _initialized = true;
         }
     }
@@ -118,7 +119,8 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 
     /**
@@ -126,6 +128,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONSUMER_ROLE, consumer);
+        _clearRole(CONSUMER_ROLE);
+        _grantRole(CONSUMER_ROLE, consumer);
     }
 }

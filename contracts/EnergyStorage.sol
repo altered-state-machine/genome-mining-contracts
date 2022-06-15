@@ -47,7 +47,8 @@ contract EnergyStorage is Util, PermissionControl {
         if (!_initialized) {
             if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
-            _updateRole(CONSUMER_ROLE, converterLogic);
+            _clearRole(CONSUMER_ROLE);
+            _grantRole(CONSUMER_ROLE, converterLogic);
             _initialized = true;
         }
     }
@@ -57,7 +58,8 @@ contract EnergyStorage is Util, PermissionControl {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 
     /**
@@ -65,6 +67,7 @@ contract EnergyStorage is Util, PermissionControl {
      * @dev only controller is allowed to call this function
      */
     function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONSUMER_ROLE, consumer);
+        _clearRole(CONSUMER_ROLE);
+        _grantRole(CONSUMER_ROLE, consumer);
     }
 }

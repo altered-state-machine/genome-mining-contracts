@@ -97,7 +97,8 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
             _storage[1] = StakingStorage(lpStorage);
             _tokenName[1] = "ASTO/USDC Uniswap V2 LP";
 
-            _updateRole(DAO_ROLE, dao);
+            _clearRole(DAO_ROLE);
+            _grantRole(DAO_ROLE, dao);
             _initialized = true;
         }
     }
@@ -107,7 +108,8 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      * @dev only controller is allowed to set new DAO contract
      */
     function setDao(address newDao) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(DAO_ROLE, newDao);
+        _clearRole(DAO_ROLE);
+        _grantRole(DAO_ROLE, newDao);
     }
 
     /**
@@ -115,7 +117,8 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 
     /**
