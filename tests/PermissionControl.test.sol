@@ -52,58 +52,34 @@ contract PermissionControlTest is DSTest, PermissionControl {
 
     /**
      * @notice GIVEN: role and address
-     * @notice  WHEN: address does not have existing role
-     * @notice  THEN: should grant the role to the address
-     */
-    function testUpdateRole_with_no_existing_role() public skip(false) {
-        _updateRole(CONSUMER_ROLE, deployer);
-        assertTrue(hasRole(CONSUMER_ROLE, deployer));
-    }
-
-    /**
-     * @notice GIVEN: role and address
      * @notice  WHEN: address already have the role
-     * @notice  THEN: should keep the role
+     * @notice  THEN: should clear the role
      */
-    function testUpdateRole_with_existing_role() public skip(false) {
+    function testClearRole_with_existing_role() public skip(false) {
         _grantRole(CONSUMER_ROLE, deployer);
+        assertEq(getRoleMemberCount(CONSUMER_ROLE), 1);
         assertTrue(hasRole(CONSUMER_ROLE, deployer));
 
-        _updateRole(CONSUMER_ROLE, deployer);
-        assertTrue(hasRole(CONSUMER_ROLE, deployer));
-    }
-
-    /**
-     * @notice GIVEN: role and address
-     * @notice  WHEN: another address has the role
-     * @notice  THEN: revoke the role to the old address
-     * @notice  AND: grant the role to the new address
-     */
-    function testUpdateRole_will_revoke_old_role() public skip(false) {
-        _grantRole(CONSUMER_ROLE, someone);
-        assertTrue(hasRole(CONSUMER_ROLE, someone));
-
-        _updateRole(CONSUMER_ROLE, deployer);
-        assertTrue(!hasRole(CONSUMER_ROLE, someone));
-        assertTrue(hasRole(CONSUMER_ROLE, deployer));
+        _clearRole(CONSUMER_ROLE);
+        assertTrue(!hasRole(CONSUMER_ROLE, deployer));
     }
 
     /**
      * @notice GIVEN: role and address
      * @notice  WHEN: multiple addresses have the role
      * @notice  THEN: revoke the role to the all old addresses
-     * @notice  AND: grant the role to the new address
      */
-    function testUpdateRole_will_revoke_all_old_address() public skip(false) {
+    function testClearRole_will_revoke_all_role_members() public skip(false) {
         _grantRole(CONSUMER_ROLE, someone);
         _grantRole(CONSUMER_ROLE, another);
         assertTrue(hasRole(CONSUMER_ROLE, someone));
         assertTrue(hasRole(CONSUMER_ROLE, another));
+        assertEq(getRoleMemberCount(CONSUMER_ROLE), 2);
 
-        _updateRole(CONSUMER_ROLE, deployer);
+        _clearRole(CONSUMER_ROLE);
         assertTrue(!hasRole(CONSUMER_ROLE, someone));
         assertTrue(!hasRole(CONSUMER_ROLE, another));
-        assertTrue(hasRole(CONSUMER_ROLE, deployer));
+        assertEq(getRoleMemberCount(CONSUMER_ROLE), 0);
     }
 
     /** ----------------------------------
