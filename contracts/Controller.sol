@@ -16,7 +16,6 @@ import "./helpers/Util.sol";
  * @notice when we need to update some of them.
  */
 contract Controller is Util, PermissionControl {
-    Controller private _controller;
     Staking private _stakingLogic;
     StakingStorage private _astoStorage;
     StakingStorage private _lpStorage;
@@ -77,7 +76,6 @@ contract Controller is Util, PermissionControl {
             _converterLogic = Converter(converterLogic);
             _energyStorage = EnergyStorage(energyStorage);
             _lbaEnergyStorage = EnergyStorage(lbaEnergyStorage);
-            _controller = Controller(this);
 
             // Initializing contracts
             _upgradeContracts(
