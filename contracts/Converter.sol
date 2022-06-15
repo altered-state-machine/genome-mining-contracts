@@ -114,7 +114,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param multiplier The multiplier for staked token
      * @return total energy amount for the token
      */
-    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) private view returns (uint256) {
+    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
         uint256 total = 0;
         for (uint256 i = history.length; i > 0; i--) {
             if (currentTime() < history[i - 1].time) continue;
@@ -226,7 +226,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @return current period data
      */
-    function getCurrentPeriod() public view returns (Period memory) {
+    function getCurrentPeriod() external view returns (Period memory) {
         return periods[getCurrentPeriodId()];
     }
 
@@ -274,7 +274,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param _periods The list of periods to be added
      */
-    function addPeriods(Period[] memory _periods) public onlyRole(MULTISIG_ROLE) {
+    function addPeriods(Period[] memory _periods) external onlyRole(MULTISIG_ROLE) {
         _addPeriods(_periods);
     }
 
@@ -305,7 +305,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param _periods The list of periods to be added
      */
-    function _addPeriods(Period[] memory _periods) private {
+    function _addPeriods(Period[] memory _periods) internal {
         for (uint256 i = 0; i < _periods.length; i++) {
             _addPeriod(_periods[i]);
         }
@@ -317,7 +317,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param period The period instance to add
      */
-    function _addPeriod(Period memory period) private {
+    function _addPeriod(Period memory period) internal {
         periods[++periodIdCounter] = period;
         emit PeriodAdded(currentTime(), periodIdCounter, period);
     }
@@ -329,7 +329,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function _updatePeriod(uint256 periodId, Period memory period) private {
+    function _updatePeriod(uint256 periodId, Period memory period) internal {
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
         periods[periodId] = period;
         emit PeriodUpdated(currentTime(), periodId, period);

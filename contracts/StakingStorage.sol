@@ -41,7 +41,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param amount - amount of tokens to stake
      * @return stakeID
      */
-    function updateHistory(address addr, uint256 amount) public onlyRole(CONSUMER_ROLE) returns (uint256) {
+    function updateHistory(address addr, uint256 amount) external onlyRole(CONSUMER_ROLE) returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
 
         uint128 time = uint128(currentTime());
