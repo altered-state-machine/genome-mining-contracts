@@ -9,7 +9,7 @@ import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 
 /**
- * @dev Tests for the ASM Genome Mining - Energy Converter contract
+ * @dev Tests for the PermissionControl contract
  */
 contract PermissionControlTest is DSTest, PermissionControl {
     // Cheat codes are state changing methods called from the address:
