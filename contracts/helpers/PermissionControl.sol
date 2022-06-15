@@ -19,8 +19,11 @@ contract PermissionControl is AccessControlEnumerable {
      * @dev Internal function without access restriction.
      */
     function _updateRole(bytes32 role, address newAddress) internal {
-        address oldAddress = getRoleMember(role, 0);
-        _revokeRole(role, oldAddress);
+        uint256 count = getRoleMemberCount(role);
+        for (uint256 i = 0; i < count; i++) {
+            _revokeRole(role, getRoleMember(role, i));
+        }
+
         _grantRole(role, newAddress);
     }
 }
