@@ -15,7 +15,7 @@ bytes32 constant CONSUMER_ROLE = keccak256("CONSUMER_ROLE");
 
 contract PermissionControl is AccessControlEnumerable {
     /**
-     * @dev Update `role` from the sender to `newAddress`.
+     * @dev Update `role` to `newAddress`. It will revoke the old role assignments as well.
      * @dev Internal function without access restriction.
      */
     function _updateRole(bytes32 role, address newAddress) internal {
