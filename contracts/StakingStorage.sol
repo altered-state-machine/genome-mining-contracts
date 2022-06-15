@@ -107,9 +107,10 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      * @param stakingLogic Staking contract address
      */
     function init(address stakingLogic) external onlyRole(CONTROLLER_ROLE) {
-        require(_initialized == false, ALREADY_INITIALIZED);
-        _updateRole(CONSUMER_ROLE, stakingLogic);
-        _initialized = true;
+        if (!_initialized) {
+            _updateRole(CONSUMER_ROLE, stakingLogic);
+            _initialized = true;
+        }
     }
 
     /**

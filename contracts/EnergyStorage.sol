@@ -44,11 +44,12 @@ contract EnergyStorage is Util, PermissionControl {
      * @param converterLogic Converter logic contract address
      */
     function init(address converterLogic) external onlyRole(CONTROLLER_ROLE) {
-        if (_initialized) revert ContractError(ALREADY_INITIALIZED);
-        if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
+        if (!_initialized) {
+            if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
-        _updateRole(CONSUMER_ROLE, converterLogic);
-        _initialized = true;
+            _updateRole(CONSUMER_ROLE, converterLogic);
+            _initialized = true;
+        }
     }
 
     /**

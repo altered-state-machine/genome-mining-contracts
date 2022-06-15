@@ -354,20 +354,20 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         address lbaEnergyStorage,
         address stakingLogic
     ) external onlyRole(CONTROLLER_ROLE) {
-        if (_initialized) revert ContractError(ALREADY_INITIALIZED);
+        if (!_initialized) {
+            if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
+            if (!_isContract(lbaEnergyStorage)) revert ContractError(INVALID_LBA_ENERGY_STORAGE);
+            if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
 
-        if (!_isContract(energyStorage)) revert ContractError(INVALID_ENERGY_STORAGE);
-        if (!_isContract(lbaEnergyStorage)) revert ContractError(INVALID_LBA_ENERGY_STORAGE);
-        if (!_isContract(stakingLogic)) revert ContractError(INVALID_STAKING_LOGIC);
+            stakingLogic_ = Staking(stakingLogic);
+            energyStorage_ = EnergyStorage(energyStorage);
+            lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
-        stakingLogic_ = Staking(stakingLogic);
-        energyStorage_ = EnergyStorage(energyStorage);
-        lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
+            _updateRole(DAO_ROLE, dao);
+            _updateRole(MULTISIG_ROLE, multisig);
 
-        _updateRole(DAO_ROLE, dao);
-        _updateRole(MULTISIG_ROLE, multisig);
-
-        _initialized = true;
+            _initialized = true;
+        }
     }
 
     /**

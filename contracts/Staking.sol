@@ -88,16 +88,16 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         IERC20 lpToken,
         address lpStorage
     ) external onlyRole(CONTROLLER_ROLE) {
-        require(_initialized == false, ALREADY_INITIALIZED);
+        if (!_initialized) {
+            _token[0] = astoToken;
+            _storage[0] = StakingStorage(astoStorage);
 
-        _token[0] = astoToken;
-        _storage[0] = StakingStorage(astoStorage);
+            _token[1] = lpToken;
+            _storage[1] = StakingStorage(lpStorage);
 
-        _token[1] = lpToken;
-        _storage[1] = StakingStorage(lpStorage);
-
-        _updateRole(DAO_ROLE, dao);
-        _initialized = true;
+            _updateRole(DAO_ROLE, dao);
+            _initialized = true;
+        }
     }
 
     /**

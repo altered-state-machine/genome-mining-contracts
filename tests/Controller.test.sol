@@ -23,7 +23,6 @@ import "forge-std/Vm.sol";
  */
 contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     Staking staker_;
-    Staking newStaker_;
     StakingStorage astoStorage_;
     StakingStorage lpStorage_;
     Controller controller_;
@@ -31,7 +30,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     MockedERC20 lpToken_;
     EnergyStorage energyStorage_;
     EnergyStorage lbaEnergyStorage_;
-    Converter converterLogic_;
+    Converter converter_;
 
     // Cheat codes are state changing methods called from the address:
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
@@ -70,10 +69,9 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         controller_ = new Controller(multisig);
 
         staker_ = new Staking(address(controller_));
-        newStaker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
+        converter_ = new Converter(address(controller_), address(lba), new Period[](0));
         energyStorage_ = new EnergyStorage(address(controller_));
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
@@ -84,7 +82,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
             address(lpToken_),
             address(lpStorage_),
             address(staker_),
-            address(converterLogic_),
+            address(converter_),
             address(energyStorage_),
             address(lbaEnergyStorage_)
         );
@@ -94,23 +92,13 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
      * ! Admin functions
      * ----------------------------------- */
 
-    function test_beforeAll() public view skip(true) {
-        console.log("Multisig", address(multisig));
-        console.log("Deployer", address(deployer));
-        console.log("Controller", address(controller_));
-        console.log("Staker", address(staker_));
-        console.log("ASTO Token", address(astoToken_));
-        console.log("LP Token", address(lpToken_));
-        console.log("ASTO Storage", address(astoStorage_));
-        console.log("LP Storage", address(lpStorage_));
-    }
-
     /**
      * @notice GIVEN: new staking contract address
      * @notice  WHEN: NOT a manager calls the `upgrdadeContracts()`
      * @notice  THEN: should revert with long message about missing role
      */
-    function testUpgradeContracts_wrong_role() public skip(false) {
+    function test_upgradeContracts_wrong_role() public skip(true) {
+        Staking newContract_ = new Staking(address(controller_));
         vm.prank(address(someone)); // someone address - 0xa847d497b38b9e11833eac3ea03921b40e6d847c
         vm.expectRevert(
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0x3b5d4cc60d3ec3516ee8ae083bd60934f6eb2a6c54b1229985c41bfb092b2603"
@@ -121,11 +109,75 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
             address(0),
             address(0),
             address(0),
-            address(newStaker_),
+            address(newContract_),
             address(0),
             address(0),
             address(0)
         );
+    }
+
+    /**
+     * @notice GIVEN: new astoStorage contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_astoStorage_sol() public skip(true) {
+        StakingStorage newContract_ = new StakingStorage(address(controller_));
+
+        vm.prank(address(multisig));
+        controller_.upgradeContracts(
+            address(0), // dao
+            address(0), // asto token
+            address(newContract_), // astoStorage
+            address(0), // lpToken
+            address(0), // lpStorage
+            address(0), // stakingLogic
+            address(0), // converterLogic
+            address(0), // energyStorage
+            address(0) // lbaEnergyStorage
+        );
+
+        // Checking controller
+        assertEq(controller_.getAstoStorage(), address(newContract_), "Controller should return new contract address");
+
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(converter_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+        assertTrue(newContract_.hasRole(DAO_ROLE, address(dao)), "Should have a proper DAO");
+        assertTrue(newContract_.hasRole(MULTISIG_ROLE, address(multisig)), "Should have a proper MULTISIG");
+    }
+
+    /**
+     * @notice GIVEN: new lpStorage contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_lpStorage_sol() public skip(true) {
+        StakingStorage newContract_ = new StakingStorage(address(controller_));
+
+        vm.prank(address(multisig));
+        controller_.upgradeContracts(
+            address(0), // dao
+            address(0), // asto token
+            address(0), // astoStorage
+            address(0), // lpToken
+            address(newContract_), // lpStorage
+            address(0), // stakingLogic
+            address(0), // converterLogic
+            address(0), // energyStorage
+            address(0) // lbaEnergyStorage
+        );
+
+        // Checking controller
+        assertEq(controller_.getLpStorage(), address(newContract_), "Controller should return new contract address");
+
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(converter_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+        assertTrue(newContract_.hasRole(DAO_ROLE, address(dao)), "Should have a proper DAO");
+        assertTrue(newContract_.hasRole(MULTISIG_ROLE, address(multisig)), "Should have a proper MULTISIG");
     }
 
     /**
@@ -134,50 +186,194 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
      * @notice   AND: all other contracts should not be changed
      * @notice  THEN: staking contract is changed and initialized
      */
-    function testUpgradeContracts_staking_sol() public skip(false) {
+    function test_upgradeContracts_staking_sol() public skip(true) {
+        Staking newContract_ = new Staking(address(controller_));
         vm.prank(address(multisig));
         controller_.upgradeContracts(
-            address(0),
-            address(0),
-            address(0),
-            address(0),
-            address(0),
-            address(newStaker_),
-            address(0),
-            address(0),
-            address(0)
-        );
-        assertEq(
-            controller_.getStakingLogic(),
-            address(newStaker_),
-            "Controller should return new staking contract address"
-        );
-        assertEq(
-            newStaker_.getTokenAddress(0),
-            address(astoToken_),
-            "New Staking contract should be properly initialized"
-        );
-        assertEq(
-            newStaker_.getTokenAddress(1),
-            address(lpToken_),
-            "New Staking contract should be properly initialized"
+            address(0), // dao
+            address(0), // asto token
+            address(0), // astoStorage
+            address(0), // lpToken
+            address(0), // lpStorage
+            address(newContract_), // stakingLogic
+            address(0), // converterLogic
+            address(0), // energyStorage
+            address(0) // lbaEnergyStorage
         );
 
-        assertEq(controller_.getAstoStorage(), address(astoStorage_), "Asto Storage should return old address");
-        assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
-        assertEq(controller_.getLpStorage(), address(lpStorage_), "LP Storage should return old address");
-        assertEq(controller_.getEnergyStorage(), address(energyStorage_), "Energy Storage should return old address");
+        // Checking controller
+        assertEq(controller_.getAstoStorage(), address(newContract_), "Controller should return new contract address");
+
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(staker_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+        assertTrue(newContract_.hasRole(DAO_ROLE, address(dao)), "Should have a proper DAO");
+        assertTrue(newContract_.hasRole(MULTISIG_ROLE, address(multisig)), "Should have a proper MULTISIG");
+
+        // Checking getters
+        assertEq(controller_.getStakingLogic(), address(newContract_));
+        assertEq(newContract_.getTokenAddress(0), address(astoToken_));
+        assertEq(newContract_.getTokenAddress(1), address(lpToken_));
+        assertEq(controller_.getAstoStorage(), address(astoStorage_));
+        assertEq(controller_.getLpStorage(), address(lpStorage_));
+        assertEq(controller_.getLpStorage(), address(lpStorage_));
+        assertEq(controller_.getEnergyStorage(), address(energyStorage_));
+        assertEq(controller_.getLBAEnergyStorage(), address(lbaEnergyStorage_));
+        assertEq(controller_.getConverterLogic(), address(converter_));
+
+        // Checking functions
+        assertTrue(newContract_.paused());
+        controller_.unpause();
+        assertTrue(!newContract_.paused());
+    }
+
+    /**
+     * @notice GIVEN: new Converter contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_converter_sol() public skip(false) {
+        Converter newContract_ = new Converter(address(controller_), address(lba), new Period[](0));
+        vm.prank(address(multisig));
+
+        controller_.upgradeContracts(
+            address(0), // dao
+            address(0), // asto token
+            address(0), // astoStorage
+            address(0), // lpToken
+            address(0), // lpStorage
+            address(0), // stakingLogic
+            address(newContract_), // converterLogic
+            address(0), // energyStorage
+            address(0) // lbaEnergyStorage
+        );
+        // Checking controller
+        assertEq(
+            controller_.getConverterLogic(),
+            address(newContract_),
+            "Controller should return new contract address"
+        );
+
+        // Checking contract roles
+        // !ATTN: until minting contract isn'set, the consumer of Converter is a Controller
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(controller_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+
+        // newContract.getConsumedEnergy()
+    }
+
+    /**
+     * @notice GIVEN: new energy storage contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_energyStorage_sol() public skip(false) {
+        EnergyStorage newContract_ = new EnergyStorage(address(controller_));
+        vm.prank(address(multisig));
+        controller_.upgradeContracts(
+            address(0), // dao
+            address(0), // asto token
+            address(0), // astoStorage
+            address(0), // lpToken
+            address(0), // lpStorage
+            address(0), // stakingLogic
+            address(0), // converterLogic
+            address(newContract_), // energyStorage
+            address(0) // lbaEnergyStorage
+        );
+
+        // Checking controller
+        assertEq(
+            controller_.getEnergyStorage(),
+            address(newContract_),
+            "Controller should return new contract address"
+        );
+
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(converter_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+    }
+
+    /**
+     * @notice GIVEN: new lbaStorage contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_lbaStorage_sol() public skip(false) {
+        EnergyStorage newContract_ = new EnergyStorage(address(controller_));
+        vm.prank(address(multisig));
+        controller_.upgradeContracts(
+            address(0), // dao
+            address(0), // asto token
+            address(0), // astoStorage
+            address(0), // lpToken
+            address(0), // lpStorage
+            address(0), // stakingLogic
+            address(0), // converterLogic
+            address(0), // energyStorage
+            address(newContract_) // lbaEnergyStorage
+        );
+
+        // Checking controller
         assertEq(
             controller_.getLBAEnergyStorage(),
-            address(lbaEnergyStorage_),
-            "Energy Storage should return old address"
+            address(newContract_),
+            "Controller should return new contract address"
         );
-        assertEq(controller_.getConverterLogic(), address(converterLogic_), "Energy Storage should return old address");
 
-        // controller_.pause();
-        bool isPaused = newStaker_.paused();
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(converter_)), "Should have set a proper consumer");
+        assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
+    }
 
-        assertTrue(isPaused, "Controller is assigned and has a correct role with new Staking contract");
+    /**
+     * @notice GIVEN: new Controller contract address
+     * @notice  WHEN: manager calls the `upgrdadeContracts()`
+     * @notice   AND: all other contracts should not be changed
+     * @notice  THEN: staking contract is changed and initialized
+     */
+    function test_upgradeContracts_controller_sol() public skip(false) {
+        vm.startPrank(address(multisig));
+        Controller newContract_ = new Controller(multisig);
+
+        // Old controller should set a New Controller before initialisig a new contract
+        controller_.setController(address(newContract_));
+
+        newContract_.init(
+            address(dao),
+            address(astoToken_),
+            address(astoStorage_),
+            address(lpToken_),
+            address(lpStorage_),
+            address(staker_),
+            address(converter_),
+            address(energyStorage_),
+            address(lbaEnergyStorage_)
+        );
+
+        assertEq(
+            newContract_.getStakingLogic(),
+            address(staker_),
+            "New Controller should return staking contract address"
+        );
+
+        // Checking controller
+        assertEq(newContract_.getController(), address(newContract_), "Controller should return new contract address");
+
+        // Checking contract roles
+        assertTrue(newContract_.hasRole(DAO_ROLE, dao), "Should have set a proper DAO");
+        assertTrue(newContract_.hasRole(MULTISIG_ROLE, multisig), "Should have set a proper Multisig");
+
+        // Checking getters
+        assertEq(newContract_.getAstoStorage(), address(astoStorage_), "should return proper address");
+        assertEq(newContract_.getLpStorage(), address(lpStorage_), "should return proper address");
+        assertEq(newContract_.getLpStorage(), address(lpStorage_), "should return proper address");
+        assertEq(newContract_.getEnergyStorage(), address(energyStorage_), "should return proper address");
+        assertEq(newContract_.getLBAEnergyStorage(), address(lbaEnergyStorage_), "should return proper address");
+        assertEq(newContract_.getConverterLogic(), address(converter_), "should return proper address");
     }
 
     /** ----------------------------------
