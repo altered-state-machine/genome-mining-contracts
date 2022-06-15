@@ -28,6 +28,8 @@ contract Controller is Util, PermissionControl {
     address private _dao;
     address private _multisig;
 
+    bool private _initialized;
+
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
     constructor(address multisig) {
@@ -53,42 +55,44 @@ contract Controller is Util, PermissionControl {
         address energyStorage,
         address lbaEnergyStorage
     ) external onlyRole(MULTISIG_ROLE) {
-        if (!_isContract(dao)) revert InvalidInput(INVALID_DAO);
-        if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
-        if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
-        if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
-        if (!_isContract(lpStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
-        if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
-        if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
-        if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
-        if (!_isContract(lbaEnergyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
+        if (!_initialized) {
+            if (!_isContract(dao)) revert InvalidInput(INVALID_DAO);
+            if (!_isContract(astoToken)) revert InvalidInput(INVALID_ASTO_CONTRACT);
+            if (!_isContract(astoStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
+            if (!_isContract(lpToken)) revert InvalidInput(INVALID_LP_CONTRACT);
+            if (!_isContract(lpStorage)) revert InvalidInput(INVALID_STAKING_STORAGE);
+            if (!_isContract(stakingLogic)) revert InvalidInput(INVALID_STAKING_LOGIC);
+            if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+            if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
+            if (!_isContract(lbaEnergyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
+            _updateRole(DAO_ROLE, dao); // remove MULTISIG address from DAO_ROLE
 
-        _updateRole(DAO_ROLE, dao); // remove MULTISIG address from DAO_ROLE
+            // Saving addresses on init:
+            _dao = dao;
+            _astoToken = IERC20(astoToken);
+            _astoStorage = StakingStorage(astoStorage);
+            _lpToken = IERC20(lpToken);
+            _lpStorage = StakingStorage(lpStorage);
+            _stakingLogic = Staking(stakingLogic);
+            _converterLogic = Converter(converterLogic);
+            _energyStorage = EnergyStorage(energyStorage);
+            _lbaEnergyStorage = EnergyStorage(lbaEnergyStorage);
+            _controller = Controller(this);
 
-        // Saving addresses on init:
-        _dao = dao;
-        _astoToken = IERC20(astoToken);
-        _astoStorage = StakingStorage(astoStorage);
-        _lpToken = IERC20(lpToken);
-        _lpStorage = StakingStorage(lpStorage);
-        _stakingLogic = Staking(stakingLogic);
-        _converterLogic = Converter(converterLogic);
-        _energyStorage = EnergyStorage(energyStorage);
-        _lbaEnergyStorage = EnergyStorage(lbaEnergyStorage);
-        _controller = Controller(this);
-
-        // Initializing contracts
-        _upgradeContracts(
-            address(this),
-            astoToken,
-            astoStorage,
-            lpToken,
-            lpStorage,
-            stakingLogic,
-            converterLogic,
-            energyStorage,
-            lbaEnergyStorage
-        );
+            // Initializing contracts
+            _upgradeContracts(
+                address(this),
+                astoToken,
+                astoStorage,
+                lpToken,
+                lpStorage,
+                stakingLogic,
+                converterLogic,
+                energyStorage,
+                lbaEnergyStorage
+            );
+            _initialized = true;
+        }
     }
 
     /** ----------------------------------
@@ -141,12 +145,12 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setController(address newContract) private {
-        _stakingLogic.setController(address(_controller));
-        _astoStorage.setController(address(_controller));
-        _lpStorage.setController(address(_controller));
-        _converterLogic.setController(address(_controller));
-        _energyStorage.setController(address(_controller));
-        _lbaEnergyStorage.setController(address(_controller));
+        _stakingLogic.setController(newContract);
+        _astoStorage.setController(newContract);
+        _lpStorage.setController(newContract);
+        _converterLogic.setController(newContract);
+        _energyStorage.setController(newContract);
+        _lbaEnergyStorage.setController(newContract);
         emit ContractUpgraded(block.timestamp, "Controller", address(this), newContract);
     }
 
