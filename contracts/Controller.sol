@@ -81,7 +81,6 @@ contract Controller is Util, PermissionControl {
 
             // Initializing contracts
             _upgradeContracts(
-                address(this),
                 astoToken,
                 astoStorage,
                 lpToken,
@@ -106,7 +105,6 @@ contract Controller is Util, PermissionControl {
      * @dev after authentication by the public function `upgradeContracts()`
      */
     function _upgradeContracts(
-        address controller,
         address astoToken,
         address astoStorage,
         address lpToken,
@@ -124,7 +122,7 @@ contract Controller is Util, PermissionControl {
         if (_isContract(energyStorage)) _setEnergyStorage(energyStorage);
         if (_isContract(lbaEnergyStorage)) _setLBAEnergyStorage(lbaEnergyStorage);
         if (_isContract(converterLogic)) _setConverterLogic(converterLogic);
-        if (_isContract(controller)) _setController(controller);
+        _setController(address(this));
     }
 
     function _setDao(address dao) private {
@@ -236,7 +234,6 @@ contract Controller is Util, PermissionControl {
      * @notice All parameters are optional
      */
     function upgradeContracts(
-        address controller,
         address astoToken,
         address astoStorage,
         address lpToken,
@@ -247,7 +244,6 @@ contract Controller is Util, PermissionControl {
         address lbaEnergyStorage
     ) external onlyRole(DAO_ROLE) {
         _upgradeContracts(
-            controller,
             astoToken,
             astoStorage,
             lpToken,
