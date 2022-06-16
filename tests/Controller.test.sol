@@ -71,7 +71,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
         staker_ = new Staking(address(controller_));
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
-        converter_ = new Converter(address(controller_), address(lba), new Period[](0));
+        converter_ = new Converter(address(controller_), address(lba), new Period[](0), 0);
         energyStorage_ = new EnergyStorage(address(controller_));
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 
@@ -232,7 +232,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
      * @notice  THEN: staking contract is changed and initialized
      */
     function test_upgradeContracts_converter_sol() public skip(false) {
-        Converter newContract_ = new Converter(address(controller_), address(lba), new Period[](0));
+        Converter newContract_ = new Converter(address(controller_), address(lba), new Period[](0), 0);
         vm.prank(address(multisig));
 
         controller_.upgradeContracts(
@@ -276,7 +276,7 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
      * @notice  THEN: staking contract is changed and initialized
      */
     function test_upgradeContracts_multiple_contracts_at_once() public skip(false) {
-        Converter newConverter_ = new Converter(address(controller_), address(lba), new Period[](0));
+        Converter newConverter_ = new Converter(address(controller_), address(lba), new Period[](0), 0);
         Staking newStaker_ = new Staking(address(controller_));
         vm.prank(address(multisig));
 

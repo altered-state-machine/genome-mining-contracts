@@ -38,6 +38,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
+    uint256 private _lbaEnergyStartTime;
+
     event EnergyUsed(address addr, uint256 amount);
     event LBAEnergyUsed(address addr, uint256 amount);
     event PeriodAdded(uint256 time, uint256 periodId, Period period);
@@ -46,13 +48,15 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     constructor(
         address controller,
         address lba,
-        Period[] memory _periods
+        Period[] memory _periods,
+        uint256 lbaEnergyStartTime
     ) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
         _grantRole(CONTROLLER_ROLE, controller);
         _addPeriods(_periods);
+        _lbaEnergyStartTime = lbaEnergyStartTime;
         _pause();
     }
 
@@ -138,7 +142,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
 
         Period memory period = getPeriod(periodId);
 
-        uint256 lbaEnergyStartTime = lba_.lpTokenReleaseTime();
+        uint256 lbaEnergyStartTime = getLBAEnergyStartTime();
         if (currentTime() < lbaEnergyStartTime) return 0;
 
         uint256 elapsedTime = currentTime() - lbaEnergyStartTime;
@@ -253,6 +257,10 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function currentTime() public view virtual returns (uint256) {
         // solhint-disable-next-line not-rely-on-time
         return block.timestamp;
+    }
+
+    function getLBAEnergyStartTime() public view returns (uint256) {
+        return _lbaEnergyStartTime > 0 ? _lbaEnergyStartTime : lba_.lpTokenReleaseTime();
     }
 
     /** ----------------------------------
