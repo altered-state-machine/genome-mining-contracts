@@ -54,7 +54,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         _setupRole(CONTROLLER_ROLE, controller);
         _setupRole(DAO_ROLE, controller);
         _setupRole(MULTISIG_ROLE, controller);
-        _setupRole(CONSUMER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
@@ -393,15 +392,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
         _clearRole(CONTROLLER_ROLE);
         _grantRole(CONTROLLER_ROLE, newController);
-    }
-
-    /**
-     * @dev Update the Consumer contract address
-     * @dev only controller is allowed to call this function
-     */
-    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _clearRole(CONSUMER_ROLE);
-        _grantRole(CONSUMER_ROLE, consumer);
     }
 
     /**

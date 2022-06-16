@@ -462,12 +462,13 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
 
         vm.startPrank(multisig);
         converterLogic_.addPeriods(periods);
+        converterLogic_.addConsumer(address(lba));
         vm.stopPrank();
 
         assert(converterLogic_.getConsumedEnergy(someone) == 0);
         assert(converterLogic_.getConsumedLBAEnergy(someone) == 0);
 
-        vm.startPrank(address(controller_));
+        vm.startPrank(address(lba));
 
         Stake[] memory astoHistory = new Stake[](1);
         astoHistory[0] = Stake(startTime, 100);
@@ -491,7 +492,6 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
 
         vm.warp(startTime + 1 days);
         converterLogic_.useEnergy(someone, 1, 100 * 10**18);
-        vm.stopPrank();
         assert(converterLogic_.getConsumedEnergy(someone) == 85 * 10**18);
         assert(converterLogic_.getConsumedLBAEnergy(someone) == 15 * 10**18);
     }
@@ -509,9 +509,10 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
 
         vm.startPrank(multisig);
         converterLogic_.addPeriods(periods);
+        converterLogic_.addConsumer(address(lba));
         vm.stopPrank();
 
-        vm.startPrank(address(controller_));
+        vm.startPrank(address(lba));
 
         Stake[] memory astoHistory = new Stake[](1);
         astoHistory[0] = Stake(startTime, 100);
@@ -550,10 +551,12 @@ contract ConverterTestContract is DSTest, IConverter, IStaking, Util {
         periods[0] = Period(startTime, endTime, astoMultiplier, lpMultiplier, lbaLPMultiplier);
         periods[1] = Period(endTime, endTime + 60 days, astoMultiplier, lpMultiplier, lbaLPMultiplier);
 
-        vm.prank(multisig);
+        vm.startPrank(multisig);
         converterLogic_.addPeriods(periods);
+        converterLogic_.addConsumer(address(lba));
+        vm.stopPrank();
 
-        vm.startPrank(address(controller_));
+        vm.startPrank(address(lba));
 
         Stake[] memory astoHistory = new Stake[](1);
         astoHistory[0] = Stake(startTime, 100);

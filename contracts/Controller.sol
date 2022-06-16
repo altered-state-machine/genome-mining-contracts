@@ -152,6 +152,12 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setStakingLogic(address newContract) internal {
+        // revoke consumer role to old staking storage contract
+        if (_isContract(address(_stakingLogic))) {
+            _astoStorage.removeConsumer(address(_stakingLogic));
+            _lpStorage.removeConsumer(address(_stakingLogic));
+        }
+
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
             address(_dao),
@@ -160,8 +166,8 @@ contract Controller is Util, PermissionControl {
             IERC20(_lpToken),
             address(_lpStorage)
         );
-        _astoStorage.setConsumer(address(newContract));
-        _lpStorage.setConsumer(address(newContract));
+        _astoStorage.addConsumer(newContract);
+        _lpStorage.addConsumer(newContract);
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
@@ -187,7 +193,17 @@ contract Controller is Util, PermissionControl {
         emit ContractUpgraded(block.timestamp, "LP Staking Storage", address(this), newContract);
     }
 
+<<<<<<< HEAD
     function _setConverterLogic(address newContract) internal {
+=======
+    function _setConverterLogic(address newContract) private {
+        // revoke consumer role to old energy storage contract
+        if (_isContract(address(_converterLogic))) {
+            _lbaEnergyStorage.removeConsumer(address(_converterLogic));
+            _energyStorage.removeConsumer(address(_converterLogic));
+        }
+
+>>>>>>> cb0fe69 (split setConsumer to addConsumer and removeConsumer)
         _converterLogic = Converter(newContract);
         _converterLogic.init(
             address(_dao),
@@ -196,8 +212,8 @@ contract Controller is Util, PermissionControl {
             address(_lbaEnergyStorage),
             address(_stakingLogic)
         );
-        _lbaEnergyStorage.setConsumer(address(newContract));
-        _energyStorage.setConsumer(address(newContract));
+        _lbaEnergyStorage.addConsumer(newContract);
+        _energyStorage.addConsumer(newContract);
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
@@ -213,6 +229,7 @@ contract Controller is Util, PermissionControl {
         emit ContractUpgraded(block.timestamp, "LBA Energy Storage", address(this), newContract);
     }
 
+<<<<<<< HEAD
     function _setMintingContract(address newContract) internal {
         _converterLogic.setConsumer(address(newContract));
         emit ContractUpgraded(
@@ -223,6 +240,8 @@ contract Controller is Util, PermissionControl {
         );
     }
 
+=======
+>>>>>>> cb0fe69 (split setConsumer to addConsumer and removeConsumer)
     /** ----------------------------------
      * ! External functions | Manager Role
      * ----------------------------------- */
@@ -288,10 +307,6 @@ contract Controller is Util, PermissionControl {
 
     function setLBAEnergyStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setLBAEnergyStorage(newContract);
-    }
-
-    function setMintingContract(address newContract) external onlyRole(DAO_ROLE) {
-        _setMintingContract(newContract);
     }
 
     // DAO and MULTISIG can call this function
