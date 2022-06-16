@@ -48,13 +48,15 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     constructor(
         address controller,
         address lba,
-        Period[] memory _periods
+        Period[] memory _periods,
+        uint256 lbaEnergyStartTime
     ) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
         _grantRole(CONTROLLER_ROLE, controller);
         _addPeriods(_periods);
+        _lbaEnergyStartTime = lbaEnergyStartTime;
         _pause();
     }
 
@@ -264,10 +266,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     /** ----------------------------------
      * ! Administration         | Manager
      * ----------------------------------- */
-
-    function setLBAEnergyStartTime(uint256 time) external onlyRole(MULTISIG_ROLE) {
-        _lbaEnergyStartTime = time;
-    }
 
     /**
      * @dev Add new periods
