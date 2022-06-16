@@ -29,6 +29,9 @@ contract Controller is Util, PermissionControl {
 
     bool private _initialized;
 
+    uint256 public constant ASTO_TOKEN_ID = 0;
+    uint256 public constant LP_TOKEN_ID = 1;
+
     event ContractUpgraded(uint256 timestamp, string contractName, address oldAddress, address newAddress);
 
     constructor(address multisig) {
@@ -158,13 +161,18 @@ contract Controller is Util, PermissionControl {
             _lpStorage.removeConsumer(address(_stakingLogic));
         }
 
+        uint256 lockedAsto = _stakingLogic.totalStakedAmount(ASTO_TOKEN_ID);
+        uint256 lockedLp = _stakingLogic.totalStakedAmount(LP_TOKEN_ID);
+
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
             address(_dao),
             IERC20(_astoToken),
             address(_astoStorage),
             IERC20(_lpToken),
-            address(_lpStorage)
+            address(_lpStorage),
+            lockedAsto,
+            lockedLp
         );
         _astoStorage.addConsumer(newContract);
         _lpStorage.addConsumer(newContract);

@@ -21,18 +21,21 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
     bool private _initialized = false;
 
+    uint256 public constant ASTO_TOKEN_ID = 0;
+    uint256 public constant LP_TOKEN_ID = 1;
+
     /**
      * `_token`:  tokenId => token contract address
      * `_token`:  tokenId => token name
      * `_storage`:  tokenId => storage contract address
-     * `_totalStakedAmount`:  tokenId => total staked amount for that tokenId
+     * `totalStakedAmount`:  tokenId => total staked amount for that tokenId
      *
      * IDs: 0 for ASTO, 1 for LP tokens, see `init()` below
      */
     mapping(uint256 => IERC20) private _token;
     mapping(uint256 => string) private _tokenName;
     mapping(uint256 => StakingStorage) private _storage;
-    mapping(uint256 => uint256) private _totalStakedAmount;
+    mapping(uint256 => uint256) public totalStakedAmount;
 
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
@@ -81,7 +84,9 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         IERC20 astoToken,
         address astoStorage,
         IERC20 lpToken,
-        address lpStorage
+        address lpStorage,
+        uint256 totalStakedAsto,
+        uint256 totalStakedLp
     ) external onlyRole(CONTROLLER_ROLE) {
         if (!_initialized) {
             _token[0] = astoToken;
@@ -94,6 +99,10 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
             _clearRole(DAO_ROLE);
             _grantRole(DAO_ROLE, dao);
+
+            totalStakedAmount[ASTO_TOKEN_ID] = totalStakedAsto;
+            totalStakedAmount[LP_TOKEN_ID] = totalStakedLp;
+
             _initialized = true;
         }
     }
@@ -170,7 +179,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         uint256 stakeBalance = (_storage[tokenId].getStake(user, lastStakeId)).amount;
         uint256 newAmount = stakeBalance + amount;
         _storage[tokenId].updateHistory(user, newAmount);
-        _totalStakedAmount[tokenId] += amount;
+        totalStakedAmount[tokenId] += amount;
 
         emit Staked(_tokenName[tokenId], user, block.timestamp, amount);
     }
@@ -200,7 +209,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
         uint256 newAmount = userBalance - amount;
         _storage[tokenId].updateHistory(user, newAmount);
-        _totalStakedAmount[tokenId] -= amount;
+        totalStakedAmount[tokenId] -= amount;
 
         _token[tokenId].safeTransfer(user, amount);
 
@@ -214,7 +223,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      * @return amount of tokens staked in the contract, uint256
      */
     function getTotalValueLocked(uint256 tokenId) external view returns (uint256) {
-        return _totalStakedAmount[tokenId];
+        return totalStakedAmount[tokenId];
     }
 
     /** ----------------------------------
