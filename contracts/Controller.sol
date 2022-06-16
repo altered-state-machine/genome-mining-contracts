@@ -16,7 +16,6 @@ import "./helpers/Util.sol";
  * @notice when we need to update some of them.
  */
 contract Controller is Util, PermissionControl {
-    Controller private _controller;
     Staking private _stakingLogic;
     StakingStorage private _astoStorage;
     StakingStorage private _lpStorage;
@@ -77,7 +76,6 @@ contract Controller is Util, PermissionControl {
             _converterLogic = Converter(converterLogic);
             _energyStorage = EnergyStorage(energyStorage);
             _lbaEnergyStorage = EnergyStorage(lbaEnergyStorage);
-            _controller = Controller(this);
 
             // Initializing contracts
             _upgradeContracts(
@@ -113,7 +111,7 @@ contract Controller is Util, PermissionControl {
         address converterLogic,
         address energyStorage,
         address lbaEnergyStorage
-    ) private {
+    ) internal {
         if (_isContract(astoToken)) _setAstoToken(astoToken);
         if (_isContract(astoStorage)) _setAstoStorage(astoStorage);
         if (_isContract(lpToken)) _setLpToken(lpToken);
@@ -125,7 +123,7 @@ contract Controller is Util, PermissionControl {
         _setController(address(this));
     }
 
-    function _setDao(address dao) private {
+    function _setDao(address dao) internal {
         if (dao != _dao) {
             _dao = dao;
             _updateRole(DAO_ROLE, dao);
@@ -135,14 +133,14 @@ contract Controller is Util, PermissionControl {
         _grantRole(MULTISIG_ROLE, dao);
     }
 
-    function _setMultisig(address multisig) private {
+    function _setMultisig(address multisig) internal {
         _multisig = multisig;
         _updateRole(MULTISIG_ROLE, multisig);
         _setDao(_dao); // to grant MULTISIG_ROLE to DAO (DAO itself won't be updated)
         _converterLogic.setMultisig(multisig, _dao);
     }
 
-    function _setController(address newContract) private {
+    function _setController(address newContract) internal {
         _stakingLogic.setController(newContract);
         _astoStorage.setController(newContract);
         _lpStorage.setController(newContract);
@@ -152,7 +150,7 @@ contract Controller is Util, PermissionControl {
         emit ContractUpgraded(block.timestamp, "Controller", address(this), newContract);
     }
 
-    function _setStakingLogic(address newContract) private {
+    function _setStakingLogic(address newContract) internal {
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
             address(_dao),
@@ -166,29 +164,29 @@ contract Controller is Util, PermissionControl {
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
-    function _setAstoToken(address newContract) private {
+    function _setAstoToken(address newContract) internal {
         _astoToken = IERC20(newContract);
         emit ContractUpgraded(block.timestamp, "ASTO Token", address(this), newContract);
     }
 
-    function _setAstoStorage(address newContract) private {
+    function _setAstoStorage(address newContract) internal {
         _astoStorage = StakingStorage(newContract);
         _astoStorage.init(address(_stakingLogic));
         emit ContractUpgraded(block.timestamp, "ASTO Staking Storage", address(this), newContract);
     }
 
-    function _setLpToken(address newContract) private {
+    function _setLpToken(address newContract) internal {
         _lpToken = IERC20(newContract);
         emit ContractUpgraded(block.timestamp, "LP Token", address(this), newContract);
     }
 
-    function _setLpStorage(address newContract) private {
+    function _setLpStorage(address newContract) internal {
         _lpStorage = StakingStorage(newContract);
         _lpStorage.init(address(_stakingLogic));
         emit ContractUpgraded(block.timestamp, "LP Staking Storage", address(this), newContract);
     }
 
-    function _setConverterLogic(address newContract) private {
+    function _setConverterLogic(address newContract) internal {
         _converterLogic = Converter(newContract);
         _converterLogic.init(
             address(_dao),
@@ -202,19 +200,19 @@ contract Controller is Util, PermissionControl {
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
-    function _setEnergyStorage(address newContract) private {
+    function _setEnergyStorage(address newContract) internal {
         _energyStorage = EnergyStorage(newContract);
         _energyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "Energy Storage", address(this), newContract);
     }
 
-    function _setLBAEnergyStorage(address newContract) private {
+    function _setLBAEnergyStorage(address newContract) internal {
         _lbaEnergyStorage = EnergyStorage(newContract);
         _lbaEnergyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "LBA Energy Storage", address(this), newContract);
     }
 
-    function _setMintingContract(address newContract) private {
+    function _setMintingContract(address newContract) internal {
         _converterLogic.setConsumer(address(newContract));
         emit ContractUpgraded(
             block.timestamp,
@@ -311,39 +309,39 @@ contract Controller is Util, PermissionControl {
      * ! Public functions | Getters
      * ----------------------------------- */
 
-    function getController() public view returns (address) {
+    function getController() external view returns (address) {
         return address(this);
     }
 
-    function getDao() public view returns (address) {
+    function getDao() external view returns (address) {
         return _dao;
     }
 
-    function getMultisig() public view returns (address) {
+    function getMultisig() external view returns (address) {
         return _multisig;
     }
 
-    function getStakingLogic() public view returns (address) {
+    function getStakingLogic() external view returns (address) {
         return address(_stakingLogic);
     }
 
-    function getAstoStorage() public view returns (address) {
+    function getAstoStorage() external view returns (address) {
         return address(_astoStorage);
     }
 
-    function getLpStorage() public view returns (address) {
+    function getLpStorage() external view returns (address) {
         return address(_lpStorage);
     }
 
-    function getConverterLogic() public view returns (address) {
+    function getConverterLogic() external view returns (address) {
         return address(_converterLogic);
     }
 
-    function getEnergyStorage() public view returns (address) {
+    function getEnergyStorage() external view returns (address) {
         return address(_energyStorage);
     }
 
-    function getLBAEnergyStorage() public view returns (address) {
+    function getLBAEnergyStorage() external view returns (address) {
         return address(_lbaEnergyStorage);
     }
 }

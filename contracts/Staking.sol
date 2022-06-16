@@ -91,9 +91,11 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         if (!_initialized) {
             _token[0] = astoToken;
             _storage[0] = StakingStorage(astoStorage);
+            _tokenName[0] = "ASTO";
 
             _token[1] = lpToken;
             _storage[1] = StakingStorage(lpStorage);
+            _tokenName[1] = "ASTO/USDC Uniswap V2 LP";
 
             _updateRole(DAO_ROLE, dao);
             _initialized = true;
