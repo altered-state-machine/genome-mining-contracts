@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 
 bytes32 constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
 bytes32 constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 bytes32 constant DAO_ROLE = keccak256("DAO_ROLE");
 bytes32 constant CONSUMER_ROLE = keccak256("CONSUMER_ROLE");
 
@@ -54,5 +55,21 @@ contract PermissionControl is AccessControlEnumerable {
      */
     function removeConsumer(address addr) public eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
         _revokeRole(CONSUMER_ROLE, addr);
+    }
+
+    /**
+     * @dev Grant MANAGER_ROLE to `addr`.
+     * @dev Can only be called from Controller or Multisig
+     */
+    function addManager(address addr) public eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
+        _grantRole(MANAGER_ROLE, addr);
+    }
+
+    /**
+     * @dev Revoke MANAGER_ROLE to `addr`.
+     * @dev Can only be called from Controller or Multisig
+     */
+    function removeManager(address addr) public eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
+        _revokeRole(MANAGER_ROLE, addr);
     }
 }

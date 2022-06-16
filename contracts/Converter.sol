@@ -51,9 +51,10 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
-        _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(DAO_ROLE, controller);
-        _setupRole(MULTISIG_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
+        _grantRole(DAO_ROLE, controller);
+        _grantRole(MULTISIG_ROLE, controller);
+        _grantRole(MANAGER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
@@ -258,7 +259,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Administration         | Multisig
+     * ! Administration         | Manager
      * ----------------------------------- */
 
     /**
@@ -267,7 +268,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param _periods The list of periods to be added
      */
-    function addPeriods(Period[] memory _periods) external onlyRole(MULTISIG_ROLE) {
+    function addPeriods(Period[] memory _periods) external onlyRole(MANAGER_ROLE) {
         _addPeriods(_periods);
     }
 
@@ -277,7 +278,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param period The period instance to add
      */
-    function addPeriod(Period memory period) external onlyRole(MULTISIG_ROLE) {
+    function addPeriod(Period memory period) external onlyRole(MANAGER_ROLE) {
         _addPeriod(period);
     }
 
@@ -288,7 +289,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MULTISIG_ROLE) {
+    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MANAGER_ROLE) {
         _updatePeriod(periodId, period);
     }
 
@@ -361,6 +362,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
 
             _clearRole(MULTISIG_ROLE);
             _grantRole(MULTISIG_ROLE, multisig);
+            _grantRole(MANAGER_ROLE, multisig);
 
             _initialized = true;
         }

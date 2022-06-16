@@ -125,6 +125,56 @@ contract PermissionControlTest is DSTest, PermissionControl {
         this.removeConsumer(another);
     }
 
+    function testAddManager_from_controller() public skip(false) {
+        _grantRole(CONTROLLER_ROLE, someone);
+
+        vm.prank(someone);
+        this.addManager(another);
+
+        assertTrue(hasRole(MANAGER_ROLE, another));
+    }
+
+    function testAddManager_from_multisig() public skip(false) {
+        _grantRole(MULTISIG_ROLE, someone);
+
+        vm.prank(someone);
+        this.addManager(another);
+
+        assertTrue(hasRole(MANAGER_ROLE, another));
+    }
+
+    function testAddManager_from_wrong_address() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(AccessDenied.selector, MISSING_ROLE));
+        this.addManager(another);
+    }
+
+    function testRemoveManager_from_controller() public skip(false) {
+        _grantRole(CONTROLLER_ROLE, someone);
+
+        vm.startPrank(someone);
+        this.addManager(another);
+        assertTrue(hasRole(MANAGER_ROLE, another));
+
+        this.removeManager(another);
+        assertTrue(!hasRole(MANAGER_ROLE, another));
+    }
+
+    function testRemoveManager_from_multisig() public skip(false) {
+        _grantRole(MULTISIG_ROLE, someone);
+
+        vm.startPrank(someone);
+        this.addManager(another);
+        assertTrue(hasRole(MANAGER_ROLE, another));
+
+        this.removeManager(another);
+        assertTrue(!hasRole(MANAGER_ROLE, another));
+    }
+
+    function testRemoveManager_from_wrong_address() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(AccessDenied.selector, MISSING_ROLE));
+        this.removeManager(another);
+    }
+
     /** ----------------------------------
      * ! Contract modifiers
      * ----------------------------------- */
