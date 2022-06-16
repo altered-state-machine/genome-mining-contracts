@@ -6,3 +6,4 @@
 - [Staking Contracts Use cases](staking_uc.md)
 - [Energy Converter Contracts Use cases](converter_uc.md)
 - [Energy sources](energy.md)
+- [Roles explained](roles.md)
