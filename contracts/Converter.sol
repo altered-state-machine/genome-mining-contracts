@@ -172,7 +172,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         uint256 availableEnergy = calculateAvailableLBAEnergy(addr, periodId);
         uint256 consumedEnergy = getConsumedLBAEnergy(addr);
         if (availableEnergy > 0 && availableEnergy > consumedEnergy) return availableEnergy - consumedEnergy;
-        else return 0;
+        return 0;
     }
 
     /**
