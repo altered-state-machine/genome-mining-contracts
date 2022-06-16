@@ -41,7 +41,7 @@ contract EnergyStorageTestContract is DSTest, IConverter, Util {
     function setupContracts() internal {
         controller_ = new Controller(multisig);
         energyStorage_ = new EnergyStorage(address(controller_));
-        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0), 0);
 
         vm.startPrank(address(controller_));
         energyStorage_.init(address(converterLogic_));

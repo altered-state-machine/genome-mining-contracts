@@ -71,7 +71,7 @@ contract StakingStorageTestContract is DSTest, IStaking, IConverter, Util {
         astoStorage_ = new StakingStorage(address(controller_));
         lpStorage_ = new StakingStorage(address(controller_));
         staker_ = new Staking(address(controller_));
-        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0));
+        converterLogic_ = new Converter(address(controller_), address(lba), new Period[](0), 0);
         energyStorage_ = new EnergyStorage(address(controller_));
         lbaEnergyStorage_ = new EnergyStorage(address(controller_));
 

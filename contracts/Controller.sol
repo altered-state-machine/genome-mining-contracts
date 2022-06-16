@@ -294,14 +294,24 @@ contract Controller is Util, PermissionControl {
 
     // DAO and MULTISIG can call this function
     function pause() external onlyRole(MULTISIG_ROLE) {
-        _stakingLogic.pause();
-        _converterLogic.pause();
+        if (!_stakingLogic.paused()) {
+            _stakingLogic.pause();
+        }
+
+        if (!_converterLogic.paused()) {
+            _converterLogic.pause();
+        }
     }
 
     // DAO and MULTISIG can call this function
     function unpause() external onlyRole(MULTISIG_ROLE) {
-        _stakingLogic.unpause();
-        _converterLogic.unpause();
+        if (_stakingLogic.paused()) {
+            _stakingLogic.unpause();
+        }
+
+        if (_converterLogic.paused()) {
+            _converterLogic.unpause();
+        }
     }
 
     /** ----------------------------------
