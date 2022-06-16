@@ -16,13 +16,15 @@ bytes32 constant CONSUMER_ROLE = keccak256("CONSUMER_ROLE");
 string constant MISSING_ROLE = "Missing required role";
 
 contract PermissionControl is AccessControlEnumerable {
+    error AccessDenied(string errMsg);
+
     /**
      * @dev Modifier that checks that an account has at least one role in `roles`.
      * Reverts with a standardized message.
      */
     modifier eitherRole(bytes32[2] memory roles) {
         if (!hasRole(roles[0], _msgSender()) && !hasRole(roles[1], _msgSender())) {
-            revert(MISSING_ROLE);
+            revert AccessDenied(MISSING_ROLE);
         }
         _;
     }
@@ -42,7 +44,7 @@ contract PermissionControl is AccessControlEnumerable {
      * @dev Grant CONSUMER_ROLE to `addr`.
      * @dev Can only be called from Controller or Multisig
      */
-    function addConsumer(address addr) external eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
+    function addConsumer(address addr) public eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
         _grantRole(CONSUMER_ROLE, addr);
     }
 
@@ -50,7 +52,7 @@ contract PermissionControl is AccessControlEnumerable {
      * @dev Revoke CONSUMER_ROLE to `addr`.
      * @dev Can only be called from Controller or Multisig
      */
-    function removeConsumer(address addr) external eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
+    function removeConsumer(address addr) public eitherRole([CONTROLLER_ROLE, MULTISIG_ROLE]) {
         _revokeRole(CONSUMER_ROLE, addr);
     }
 }

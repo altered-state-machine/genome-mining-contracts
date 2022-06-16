@@ -20,8 +20,6 @@ contract PermissionControlTest is DSTest, PermissionControl {
     address another = 0x7d7bd5e3a6f374CAAc008e3a33949aDa5fC1cc03;
     address deployer = address(this);
 
-    PermissionControl public permissionContract;
-
     /** ----------------------------------
      * ! Setup
      * ----------------------------------- */
@@ -31,12 +29,7 @@ contract PermissionControlTest is DSTest, PermissionControl {
     // each time after deployment. Think of this like a JavaScript
     // `beforeEach` block
     function setUp() public {
-        setupContracts();
         setupWallets();
-    }
-
-    function setupContracts() internal {
-        permissionContract = new PermissionControl();
     }
 
     function setupWallets() internal {
@@ -80,6 +73,56 @@ contract PermissionControlTest is DSTest, PermissionControl {
         assertTrue(!hasRole(CONSUMER_ROLE, someone));
         assertTrue(!hasRole(CONSUMER_ROLE, another));
         assertEq(getRoleMemberCount(CONSUMER_ROLE), 0);
+    }
+
+    function testAddConsumer_from_controller() public skip(false) {
+        _grantRole(CONTROLLER_ROLE, someone);
+
+        vm.prank(someone);
+        this.addConsumer(another);
+
+        assertTrue(hasRole(CONSUMER_ROLE, another));
+    }
+
+    function testAddConsumer_from_multisig() public skip(false) {
+        _grantRole(MULTISIG_ROLE, someone);
+
+        vm.prank(someone);
+        this.addConsumer(another);
+
+        assertTrue(hasRole(CONSUMER_ROLE, another));
+    }
+
+    function testAddConsumer_from_wrong_address() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(AccessDenied.selector, MISSING_ROLE));
+        this.addConsumer(another);
+    }
+
+    function testRemoveConsumer_from_controller() public skip(false) {
+        _grantRole(CONTROLLER_ROLE, someone);
+
+        vm.startPrank(someone);
+        this.addConsumer(another);
+        assertTrue(hasRole(CONSUMER_ROLE, another));
+
+        this.removeConsumer(another);
+        assertTrue(!hasRole(CONSUMER_ROLE, another));
+    }
+
+    function testRemoveConsumer_from_multisig() public skip(false) {
+        _grantRole(MULTISIG_ROLE, someone);
+
+        vm.startPrank(someone);
+        this.addConsumer(another);
+        assertTrue(hasRole(CONSUMER_ROLE, another));
+
+        this.removeConsumer(another);
+        assertTrue(!hasRole(CONSUMER_ROLE, another));
+    }
+
+    function testRemoveConsumer_from_wrong_address() public skip(false) {
+        vm.expectRevert(abi.encodeWithSelector(AccessDenied.selector, MISSING_ROLE));
+        this.removeConsumer(another);
     }
 
     /** ----------------------------------
