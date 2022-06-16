@@ -54,11 +54,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
         uint256 tokenId,
         address recipient,
         uint256 amount
-    )
-        external
-        whenPaused // when contract is paused ONLY
-        onlyRole(DAO_ROLE)
-    {
+    ) external onlyRole(DAO_ROLE) {
         if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (address(recipient) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (_token[tokenId].balanceOf(address(this)) < amount) revert InvalidInput(INSUFFICIENT_BALANCE);
