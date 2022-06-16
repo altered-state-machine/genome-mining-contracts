@@ -38,8 +38,8 @@ contract Controller is Util, PermissionControl {
          * - initalisation controller
          * - setting periods (mining cycles) for the Converter contract
          */
-        _setupRole(MULTISIG_ROLE, multisig);
-        _setupRole(DAO_ROLE, multisig);
+        _grantRole(MULTISIG_ROLE, multisig);
+        _grantRole(DAO_ROLE, multisig);
         _multisig = multisig;
     }
 
@@ -64,7 +64,8 @@ contract Controller is Util, PermissionControl {
             if (!_isContract(converterLogic)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
             if (!_isContract(energyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
             if (!_isContract(lbaEnergyStorage)) revert InvalidInput(INVALID_ENERGY_STORAGE);
-            _updateRole(DAO_ROLE, dao); // remove MULTISIG address from DAO_ROLE
+            _clearRole(DAO_ROLE);
+            _grantRole(DAO_ROLE, dao);
 
             // Saving addresses on init:
             _dao = dao;
@@ -124,19 +125,19 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setDao(address dao) internal {
-        if (dao != _dao) {
-            _dao = dao;
-            _updateRole(DAO_ROLE, dao);
-            _stakingLogic.setDao(dao);
-            _converterLogic.setDao(dao);
-        }
+        _dao = dao;
+        _clearRole(DAO_ROLE);
+        _grantRole(DAO_ROLE, dao);
         _grantRole(MULTISIG_ROLE, dao);
+        _stakingLogic.setDao(dao);
+        _converterLogic.setDao(dao);
     }
 
     function _setMultisig(address multisig) internal {
         _multisig = multisig;
-        _updateRole(MULTISIG_ROLE, multisig);
-        _setDao(_dao); // to grant MULTISIG_ROLE to DAO (DAO itself won't be updated)
+        _clearRole(MULTISIG_ROLE);
+        _grantRole(MULTISIG_ROLE, multisig);
+        _grantRole(MULTISIG_ROLE, _dao);
         _converterLogic.setMultisig(multisig, _dao);
     }
 
@@ -151,6 +152,12 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setStakingLogic(address newContract) internal {
+        // revoke consumer role to old staking storage contract
+        if (_isContract(address(_stakingLogic))) {
+            _astoStorage.removeConsumer(address(_stakingLogic));
+            _lpStorage.removeConsumer(address(_stakingLogic));
+        }
+
         _stakingLogic = Staking(newContract);
         _stakingLogic.init(
             address(_dao),
@@ -159,8 +166,8 @@ contract Controller is Util, PermissionControl {
             IERC20(_lpToken),
             address(_lpStorage)
         );
-        _astoStorage.setConsumer(address(newContract));
-        _lpStorage.setConsumer(address(newContract));
+        _astoStorage.addConsumer(newContract);
+        _lpStorage.addConsumer(newContract);
         emit ContractUpgraded(block.timestamp, "Staking Logic", address(this), newContract);
     }
 
@@ -187,6 +194,12 @@ contract Controller is Util, PermissionControl {
     }
 
     function _setConverterLogic(address newContract) internal {
+        // revoke consumer role to old energy storage contract
+        if (_isContract(address(_converterLogic))) {
+            _lbaEnergyStorage.removeConsumer(address(_converterLogic));
+            _energyStorage.removeConsumer(address(_converterLogic));
+        }
+
         _converterLogic = Converter(newContract);
         _converterLogic.init(
             address(_dao),
@@ -195,8 +208,8 @@ contract Controller is Util, PermissionControl {
             address(_lbaEnergyStorage),
             address(_stakingLogic)
         );
-        _lbaEnergyStorage.setConsumer(address(newContract));
-        _energyStorage.setConsumer(address(newContract));
+        _lbaEnergyStorage.addConsumer(newContract);
+        _energyStorage.addConsumer(newContract);
         emit ContractUpgraded(block.timestamp, "Converter Logic", address(this), newContract);
     }
 
@@ -210,16 +223,6 @@ contract Controller is Util, PermissionControl {
         _lbaEnergyStorage = EnergyStorage(newContract);
         _lbaEnergyStorage.init(address(_converterLogic));
         emit ContractUpgraded(block.timestamp, "LBA Energy Storage", address(this), newContract);
-    }
-
-    function _setMintingContract(address newContract) internal {
-        _converterLogic.setConsumer(address(newContract));
-        emit ContractUpgraded(
-            block.timestamp,
-            "Converter Logic - new Minting contract set",
-            address(this),
-            newContract
-        );
     }
 
     /** ----------------------------------
@@ -287,10 +290,6 @@ contract Controller is Util, PermissionControl {
 
     function setLBAEnergyStorage(address newContract) external onlyRole(DAO_ROLE) {
         _setLBAEnergyStorage(newContract);
-    }
-
-    function setMintingContract(address newContract) external onlyRole(DAO_ROLE) {
-        _setMintingContract(newContract);
     }
 
     // DAO and MULTISIG can call this function

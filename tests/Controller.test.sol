@@ -254,7 +254,6 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
 
         // Checking contract roles
         // !ATTN: until minting contract isn'set, the consumer of Converter is a Controller
-        assertTrue(newContract_.hasRole(CONSUMER_ROLE, address(controller_)), "Should have set a proper consumer");
         assertTrue(newContract_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
         assertTrue(newContract_.hasRole(DAO_ROLE, address(dao)), "Should have a proper DAO");
         assertTrue(newContract_.hasRole(MULTISIG_ROLE, address(multisig)), "Should have a proper Multisig");
@@ -301,7 +300,6 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
 
         // Checking contract roles
         // !ATTN: until minting contract isn'set, the consumer of Converter is a Controller
-        assertTrue(newConverter_.hasRole(CONSUMER_ROLE, address(controller_)), "Should have set a proper consumer");
         assertTrue(newConverter_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
         assertTrue(newStaker_.hasRole(CONTROLLER_ROLE, address(controller_)), "Should have set a proper controller");
 

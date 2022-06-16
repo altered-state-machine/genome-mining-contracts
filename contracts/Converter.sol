@@ -51,10 +51,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
-        _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(DAO_ROLE, controller);
-        _setupRole(MULTISIG_ROLE, controller);
-        _setupRole(CONSUMER_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
@@ -259,15 +256,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /** ----------------------------------
-     * ! Administration              | DAO
-     * ----------------------------------- */
-
-    function setUser(address addr) external onlyRole(DAO_ROLE) {
-        _updateRole(CONSUMER_ROLE, addr);
-    }
-
-    /** ----------------------------------
-     * ! Administration         | Multisig
+     * ! Administration         | Manager
      * ----------------------------------- */
 
     /**
@@ -276,7 +265,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param _periods The list of periods to be added
      */
-    function addPeriods(Period[] memory _periods) external onlyRole(MULTISIG_ROLE) {
+    function addPeriods(Period[] memory _periods) external onlyRole(MANAGER_ROLE) {
         _addPeriods(_periods);
     }
 
@@ -286,7 +275,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param period The period instance to add
      */
-    function addPeriod(Period memory period) external onlyRole(MULTISIG_ROLE) {
+    function addPeriod(Period memory period) external onlyRole(MANAGER_ROLE) {
         _addPeriod(period);
     }
 
@@ -297,7 +286,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MULTISIG_ROLE) {
+    function updatePeriod(uint256 periodId, Period memory period) external onlyRole(MANAGER_ROLE) {
         _updatePeriod(periodId, period);
     }
 
@@ -365,8 +354,9 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
             energyStorage_ = EnergyStorage(energyStorage);
             lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
-            _updateRole(DAO_ROLE, dao);
-            _updateRole(MULTISIG_ROLE, multisig);
+            _grantRole(DAO_ROLE, dao);
+            _grantRole(MULTISIG_ROLE, multisig);
+            _grantRole(MANAGER_ROLE, multisig);
 
             _initialized = true;
         }
@@ -377,7 +367,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only Controller is allowed to change the address of DAO contract
      */
     function setDao(address newDao) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(DAO_ROLE, newDao);
+        _clearRole(DAO_ROLE);
+        _grantRole(DAO_ROLE, newDao);
     }
 
     /**
@@ -385,7 +376,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only Controller is allowed to change the address of Multisig contract
      */
     function setMultisig(address newMultisig, address dao) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(MULTISIG_ROLE, newMultisig);
+        _clearRole(MULTISIG_ROLE);
+        _grantRole(MULTISIG_ROLE, newMultisig);
         _grantRole(MULTISIG_ROLE, dao);
     }
 
@@ -394,15 +386,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
-    }
-
-    /**
-     * @dev Update the Consumer contract address
-     * @dev only controller is allowed to call this function
-     */
-    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONSUMER_ROLE, consumer);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 
     /**

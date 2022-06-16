@@ -17,8 +17,7 @@ contract EnergyStorage is Util, PermissionControl {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
-        _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(CONSUMER_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
     }
 
     /**
@@ -47,7 +46,7 @@ contract EnergyStorage is Util, PermissionControl {
         if (!_initialized) {
             if (!_isContract(converterLogic)) revert ContractError(INVALID_CONVERTER_LOGIC);
 
-            _updateRole(CONSUMER_ROLE, converterLogic);
+            _grantRole(CONSUMER_ROLE, converterLogic);
             _initialized = true;
         }
     }
@@ -57,14 +56,7 @@ contract EnergyStorage is Util, PermissionControl {
      * @dev only controller is allowed to call this function
      */
     function setController(address newController) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONTROLLER_ROLE, newController);
-    }
-
-    /**
-     * @dev Update the Consumer contract address
-     * @dev only controller is allowed to call this function
-     */
-    function setConsumer(address consumer) external onlyRole(CONTROLLER_ROLE) {
-        _updateRole(CONSUMER_ROLE, consumer);
+        _clearRole(CONTROLLER_ROLE);
+        _grantRole(CONTROLLER_ROLE, newController);
     }
 }
