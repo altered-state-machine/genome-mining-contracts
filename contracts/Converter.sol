@@ -38,6 +38,8 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     uint256 public constant ASTO_TOKEN_ID = 0;
     uint256 public constant LP_TOKEN_ID = 1;
 
+    uint256 private _lbaEnergyStartTime;
+
     event EnergyUsed(address addr, uint256 amount);
     event LBAEnergyUsed(address addr, uint256 amount);
     event PeriodAdded(uint256 time, uint256 periodId, Period period);
@@ -138,7 +140,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
 
         Period memory period = getPeriod(periodId);
 
-        uint256 lbaEnergyStartTime = lba_.lpTokenReleaseTime();
+        uint256 lbaEnergyStartTime = getLBAEnergyStartTime();
         if (currentTime() < lbaEnergyStartTime) return 0;
 
         uint256 elapsedTime = currentTime() - lbaEnergyStartTime;
@@ -255,9 +257,17 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         return block.timestamp;
     }
 
+    function getLBAEnergyStartTime() public view returns (uint256) {
+        return _lbaEnergyStartTime > 0 ? _lbaEnergyStartTime : lba_.lpTokenReleaseTime();
+    }
+
     /** ----------------------------------
      * ! Administration         | Manager
      * ----------------------------------- */
+
+    function setLBAEnergyStartTime(uint256 time) external onlyRole(MULTISIG_ROLE) {
+        _lbaEnergyStartTime = time;
+    }
 
     /**
      * @dev Add new periods
