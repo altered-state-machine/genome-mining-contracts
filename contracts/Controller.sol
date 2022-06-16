@@ -38,8 +38,8 @@ contract Controller is Util, PermissionControl {
          * - initalisation controller
          * - setting periods (mining cycles) for the Converter contract
          */
-        _setupRole(MULTISIG_ROLE, multisig);
-        _setupRole(DAO_ROLE, multisig);
+        _grantRole(MULTISIG_ROLE, multisig);
+        _grantRole(DAO_ROLE, multisig);
         _multisig = multisig;
     }
 

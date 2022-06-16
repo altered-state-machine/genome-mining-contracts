@@ -17,7 +17,7 @@ contract EnergyStorage is Util, PermissionControl {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert ContractError(INVALID_CONTROLLER);
-        _setupRole(CONTROLLER_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
     }
 
     /**

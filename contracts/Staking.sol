@@ -36,8 +36,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
-        _setupRole(CONTROLLER_ROLE, controller);
-        _setupRole(DAO_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
         _pause();
     }
 

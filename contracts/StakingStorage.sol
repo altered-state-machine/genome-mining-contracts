@@ -25,7 +25,7 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
 
     constructor(address controller) {
         if (!_isContract(controller)) revert InvalidInput(INVALID_CONTROLLER);
-        _setupRole(CONTROLLER_ROLE, controller);
+        _grantRole(CONTROLLER_ROLE, controller);
     }
 
     /** ----------------------------------
@@ -107,7 +107,6 @@ contract StakingStorage is IStaking, PermissionControl, Util, Pausable {
      */
     function init(address stakingLogic) external onlyRole(CONTROLLER_ROLE) {
         if (!_initialized) {
-            _clearRole(CONSUMER_ROLE);
             _grantRole(CONSUMER_ROLE, stakingLogic);
             _initialized = true;
         }
