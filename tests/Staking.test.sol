@@ -182,17 +182,6 @@ contract StakingTestContract is DSTest, IStaking, IConverter, Util {
         staker_.withdraw(astoToken, address(0), amount);
     }
 
-    /**
-     * @notice GIVEN: an owner of this contract calls this function
-     * @notice  WHEN: the contract is NOT paused
-     * @notice  THEN: reverts with "Pausable: not paused" message
-     */
-    function testWithdraw_not_paused() public skip(false) {
-        vm.expectRevert("Pausable: not paused");
-        vm.startPrank(multisig);
-        staker_.withdraw(astoToken, address(0), amount);
-    }
-
     /** ----------------------------------
      * ! Busines logic
      * ----------------------------------- */
