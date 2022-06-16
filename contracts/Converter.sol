@@ -52,9 +52,6 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         if (!_isContract(lba)) revert ContractError(INVALID_LBA_CONTRACT);
         lba_ = ILiquidityBootstrapAuction(lba);
         _grantRole(CONTROLLER_ROLE, controller);
-        _grantRole(DAO_ROLE, controller);
-        _grantRole(MULTISIG_ROLE, controller);
-        _grantRole(MANAGER_ROLE, controller);
         _addPeriods(_periods);
         _pause();
     }
@@ -357,10 +354,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
             energyStorage_ = EnergyStorage(energyStorage);
             lbaEnergyStorage_ = EnergyStorage(lbaEnergyStorage);
 
-            _clearRole(DAO_ROLE);
             _grantRole(DAO_ROLE, dao);
-
-            _clearRole(MULTISIG_ROLE);
             _grantRole(MULTISIG_ROLE, multisig);
             _grantRole(MANAGER_ROLE, multisig);
 
