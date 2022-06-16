@@ -192,7 +192,7 @@ contract Staking is IStaking, Util, PermissionControl, Pausable {
      * @param tokenId - ID of token to stake
      * @param amount - amount of tokens to stake
      */
-    function unstake(uint256 tokenId, uint256 amount) external {
+    function unstake(uint256 tokenId, uint256 amount) external whenNotPaused {
         if (!_isContract(address(_token[tokenId]))) revert InvalidInput(WRONG_TOKEN);
         if (amount == 0) revert InvalidInput(WRONG_AMOUNT);
 
