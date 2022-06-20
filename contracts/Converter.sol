@@ -94,18 +94,30 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return energy amount
      */
     function calculateEnergy(address addr, uint256 periodId) public view returns (uint256) {
+        uint256 astoEnergyAmount = calculateASTOTokenEnergy(addr, periodId);
+        uint256 lpEnergyAmount = calculateLPTokenEnergy(addr, periodId);
+        
+        return (astoEnergyAmount + lpEnergyAmount);
+    }
+
+    function calculateASTOTokenEnergy(address addr, uint256 periodId) public view returns (uint256) {
         if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
         if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-
+        
         Period memory period = getPeriod(periodId);
-
         Stake[] memory astoHistory = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
+        
+        return _calculateEnergyForToken(astoHistory, period.astoMultiplier);
+    }
+
+    function calculateLPTokenEnergy(address addr, uint256 periodId) public view returns (uint256) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+        
+        Period memory period = getPeriod(periodId);
         Stake[] memory lpHistory = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
-
-        uint256 astoEnergyAmount = _calculateEnergyForToken(astoHistory, period.astoMultiplier);
-        uint256 lpEnergyAmount = _calculateEnergyForToken(lpHistory, period.lpMultiplier);
-
-        return (astoEnergyAmount + lpEnergyAmount);
+        
+        return _calculateEnergyForToken(lpHistory, period.lpMultiplier);
     }
 
     /**
