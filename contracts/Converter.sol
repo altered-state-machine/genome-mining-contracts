@@ -70,8 +70,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param addr The wallet address to get consumed energy for
      * @return Consumed energy amount
      */
-    function getConsumedEnergy(address addr) public view returns (uint256) {
-        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+    function getConsumedEnergy(address addr) public view nonZero(addr) returns (uint256) {
         return energyStorage_.consumedAmount(addr);
     }
 
@@ -81,8 +80,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param addr The wallet address to get consumed energy for
      * @return Consumed energy amount
      */
-    function getConsumedLBAEnergy(address addr) public view returns (uint256) {
-        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+    function getConsumedLBAEnergy(address addr) public view nonZero(addr) returns (uint256) {
         return lbaEnergyStorage_.consumedAmount(addr);
     }
 
@@ -94,18 +92,50 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return energy amount
      */
     function calculateEnergy(address addr, uint256 periodId) public view returns (uint256) {
-        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-
-        Period memory period = getPeriod(periodId);
-
-        Stake[] memory astoHistory = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
-        Stake[] memory lpHistory = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
-
-        uint256 astoEnergyAmount = _calculateEnergyForToken(astoHistory, period.astoMultiplier);
-        uint256 lpEnergyAmount = _calculateEnergyForToken(lpHistory, period.lpMultiplier);
+        uint256 astoEnergyAmount = calculateAstoEnergy(addr, periodId);
+        uint256 lpEnergyAmount = calculateLpEnergy(addr, periodId);
 
         return (astoEnergyAmount + lpEnergyAmount);
+    }
+
+    /**
+     * @dev Calculate the energy for `addr` based on the staking history  before the endTime of specified period
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount
+     */
+    function calculateAstoEnergy(address addr, uint256 periodId)
+        public
+        view
+        nonZero(addr)
+        validPeriodId(periodId)
+        returns (uint256)
+    {
+        Period memory period = getPeriod(periodId);
+        Stake[] memory astoHistory = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
+
+        return _calculateEnergyForToken(astoHistory, period.astoMultiplier);
+    }
+
+    /**
+     * @dev Calculate the energy for `addr` based on the staking history  before the endTime of specified period
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount
+     */
+    function calculateLpEnergy(address addr, uint256 periodId)
+        public
+        view
+        nonZero(addr)
+        validPeriodId(periodId)
+        returns (uint256)
+    {
+        Period memory period = getPeriod(periodId);
+        Stake[] memory lpHistory = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
+
+        return _calculateEnergyForToken(lpHistory, period.lpMultiplier);
     }
 
     /**
@@ -137,18 +167,31 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return energy amount
      */
     function calculateAvailableLBAEnergy(address addr, uint256 periodId) public view returns (uint256) {
-        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
-
-        Period memory period = getPeriod(periodId);
-
         uint256 lbaEnergyStartTime = getLBAEnergyStartTime();
         if (currentTime() < lbaEnergyStartTime) return 0;
 
         uint256 elapsedTime = currentTime() - lbaEnergyStartTime;
-        uint256 lbaLPAmount = lba_.claimableLPAmount(addr);
+        uint256 dailyLbaEnergyAmount = getDailyLBAEnergyProduction(addr, periodId);
 
-        return elapsedTime.mul(lbaLPAmount).mul(period.lbaLPMultiplier).div(SECONDS_PER_DAY);
+        return elapsedTime.mul(dailyLbaEnergyAmount).div(SECONDS_PER_DAY);
+    }
+
+    /**
+     * @dev Get a daily estimate of LBA energy production
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount (per day)
+     */
+    function getDailyLBAEnergyProduction(address addr, uint256 periodId)
+        public
+        view
+        nonZero(addr)
+        validPeriodId(periodId)
+        returns (uint256)
+    {
+        Period memory period = getPeriod(periodId);
+        return lba_.claimableLPAmount(addr).mul(period.lbaLPMultiplier);
     }
 
     /**
@@ -188,9 +231,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         address addr,
         uint256 periodId,
         uint256 amount
-    ) external whenNotPaused onlyRole(CONSUMER_ROLE) {
-        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+    ) external whenNotPaused onlyRole(CONSUMER_ROLE) validPeriodId(periodId) nonZero(addr) {
         if (amount > getEnergy(addr, periodId)) revert InvalidInput(WRONG_AMOUNT);
 
         uint256 remainingLBAEnergy = getRemainingLBAEnergy(addr, periodId);
@@ -219,8 +260,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The id of period to get
      * @return a Period struct
      */
-    function getPeriod(uint256 periodId) public view returns (Period memory) {
-        if (periodId == 0 || periodId > periodIdCounter) revert InvalidInput(WRONG_PERIOD_ID);
+    function getPeriod(uint256 periodId) public view validPeriodId(periodId) returns (Period memory) {
         return periods[periodId];
     }
 
@@ -328,8 +368,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id to update
      * @param period The period data to update
      */
-    function _updatePeriod(uint256 periodId, Period memory period) internal {
-        if (periodId == 0 || periodId > periodIdCounter) revert ContractError(WRONG_PERIOD_ID);
+    function _updatePeriod(uint256 periodId, Period memory period) internal validPeriodId(periodId) {
         periods[periodId] = period;
         emit PeriodUpdated(currentTime(), periodId, period);
     }
@@ -412,5 +451,14 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      */
     function unpause() external onlyRole(CONTROLLER_ROLE) {
         _unpause();
+    }
+
+    modifier nonZero(address addr) {
+        if (address(addr) == address(0)) revert InvalidInput(WRONG_ADDRESS);
+        _;
+    }
+    modifier validPeriodId(uint256 periodId) {
+        if (periodId == 0 || periodId > periodIdCounter) revert InvalidInput(WRONG_PERIOD_ID);
+        _;
     }
 }
