@@ -1,5 +1,5 @@
 [default]
-eth-rpc-url = "https://rinkeby.infura.io/v3/d6cb81648acd42d6a94187d1caf3d08d"
+eth-rpc-url = "https://rinkeby.infura.io/v3/****"
 libs = ["lib"]
 out = "out"
 remappings = [
