@@ -1,5 +1,6 @@
 # Patches, by releases
 
+
 ## Here to stay
 
 - GMC-01 - Wrong init logic (Logic contracts DAO, Controller contract DAO)
