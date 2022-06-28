@@ -40,10 +40,10 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
 
     uint256 private _lbaEnergyStartTime;
 
-    event EnergyUsed(address addr, uint256 amount);
-    event LBAEnergyUsed(address addr, uint256 amount);
-    event PeriodAdded(uint256 time, uint256 periodId, Period period);
-    event PeriodUpdated(uint256 time, uint256 periodId, Period period);
+    event EnergyUsed(address indexed addr, uint256 amount);
+    event LBAEnergyUsed(address indexed addr, uint256 amount);
+    event PeriodAdded(uint256 time, uint256 indexed periodId, Period period);
+    event PeriodUpdated(uint256 time, uint256 indexed periodId, Period period);
 
     constructor(
         address controller,
@@ -147,11 +147,12 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      */
     function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
         uint256 total = 0;
+        uint256 _time = currentTime();
         for (uint256 i = history.length; i > 0; i--) {
-            if (currentTime() < history[i - 1].time) continue;
+            if (_time < history[i - 1].time) continue;
 
             uint256 elapsedTime = i == history.length
-                ? currentTime().sub(history[i - 1].time)
+                ? _time.sub(history[i - 1].time)
                 : history[i].time.sub(history[i - 1].time);
 
             total = total.add(elapsedTime.mul(history[i - 1].amount).mul(multiplier));
@@ -183,13 +184,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id for energy calculation
      * @return energy amount (per day)
      */
-    function getDailyLBAEnergyProduction(address addr, uint256 periodId)
-        public
-        view
-        nonZero(addr)
-        validPeriodId(periodId)
-        returns (uint256)
-    {
+    function getDailyLBAEnergyProduction(address addr, uint256 periodId) public view nonZero(addr) returns (uint256) {
         Period memory period = getPeriod(periodId);
         return lba_.claimableLPAmount(addr).mul(period.lbaLPMultiplier);
     }

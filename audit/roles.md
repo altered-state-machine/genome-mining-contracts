@@ -19,7 +19,7 @@ The ASM DAO contract has this role.
 
 ### Responsibilites
 
-- Set the DAO address for all contracts
+- Set the DAO address for all contracts (technically, Controller set DAO, but only DAO contract can call that Controller's function)
 - Set new Multisig address for Converter
 - Set the new Controller contract
 - Upgrade contracts

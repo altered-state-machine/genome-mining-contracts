@@ -130,4 +130,4 @@ artifacts
 # Foundry generated files
 /out
 /deployments
-
+foundry.toml
