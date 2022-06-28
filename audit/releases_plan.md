@@ -1,4 +1,4 @@
-# Issues to fix, by releases
+# Patches, by releases
 
 ## Here to stay
 
