@@ -11,15 +11,15 @@
 
 ## Release 2
 
-- GMC-14 - Lack of event index
 - GMC-06 - Project information leak
-- GMC-11 - Executions Cost gas optimisation - for Converter.sol
 
 ## Release 3
 
 - GMC-05 - Wrong emitted event
-- GMC-16 - Lack of inputs validation
+- GMC-11 - Executions Cost gas optimisation - for Converter.sol
 - GMC-13 - Ensure TimeLock use
+- GMC-14 - Lack of event index
+- GMC-16 - Lack of inputs validation
 
 ## Not planned yet but we might fix it later on
 
