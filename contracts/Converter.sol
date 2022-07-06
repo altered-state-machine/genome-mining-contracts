@@ -178,6 +178,46 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     }
 
     /**
+     * @dev Get a daily estimation of energy production for all tokens
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount (per day)
+     */
+    function getDailyEnergyProduction(address addr, uint256 periodId) external view returns (uint256) {
+        return
+            getDailyASTOEnergyProduction(addr, periodId) +
+            getDailyLPEnergyProduction(addr, periodId) +
+            getDailyLBAEnergyProduction(addr, periodId);
+    }
+
+    /**
+     * @dev Get a daily estimation of energy production for ASTO
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount (per day)
+     */
+    function getDailyASTOEnergyProduction(address addr, uint256 periodId) public view nonZero(addr) returns (uint256) {
+        Period memory period = getPeriod(periodId);
+        Stake[] memory history = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
+        return history.length > 0 ? history[history.length - 1].amount.mul(period.astoMultiplier) : 0;
+    }
+
+    /**
+     * @dev Get a daily estimation of energy production for ASTO-USDC Uniswap LP token
+     *
+     * @param addr The wallet address to calculated for
+     * @param periodId The period id for energy calculation
+     * @return energy amount (per day)
+     */
+    function getDailyLPEnergyProduction(address addr, uint256 periodId) public view nonZero(addr) returns (uint256) {
+        Period memory period = getPeriod(periodId);
+        Stake[] memory history = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
+        return history.length > 0 ? history[history.length - 1].amount.mul(period.lpMultiplier) : 0;
+    }
+
+    /**
      * @dev Get a daily estimate of LBA energy production
      *
      * @param addr The wallet address to calculated for
