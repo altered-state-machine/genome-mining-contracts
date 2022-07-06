@@ -61,8 +61,8 @@ contract ControllerTestContract is DSTest, IStaking, IConverter, Util {
     }
 
     function setupTokens() internal {
-        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance);
-        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance);
+        astoToken_ = new MockedERC20("ASTO Token", "ASTO", deployer, initialBalance, 18);
+        lpToken_ = new MockedERC20("Uniswap LP Token", "LP", deployer, initialBalance, 18);
     }
 
     function setupContracts() internal {
