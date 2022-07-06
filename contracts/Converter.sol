@@ -224,7 +224,13 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id for energy calculation
      * @return energy amount (per day)
      */
-    function getDailyLBAEnergyProduction(address addr, uint256 periodId) public view nonZero(addr) returns (uint256) {
+    function getDailyLBAEnergyProduction(address addr, uint256 periodId)
+        public
+        view
+        nonZero(addr)
+        validPeriodId(periodId)
+        returns (uint256)
+    {
         Period memory period = getPeriod(periodId);
         return lba_.claimableLPAmount(addr).mul(period.lbaLPMultiplier);
     }
