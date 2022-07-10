@@ -148,14 +148,14 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
     function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
         uint256 total = 0;
         uint256 _time = currentTime();
-        for (uint256 i = history.length; i > 0; i--) {
-            if (_time < history[i - 1].time) continue;
+        for (uint256 i = history.length; i > 0; --i) {
+            Stake memory stake = history[i - 1];
+            if (_time < stake.time) continue;
 
-            uint256 elapsedTime = i == history.length
-                ? _time.sub(history[i - 1].time)
-                : history[i].time.sub(history[i - 1].time);
+            bool lastIndex = i == history.length;
+            uint256 elapsedTime = lastIndex ? _time.sub(stake.time) : history[i].time.sub(stake.time);
 
-            total = total.add(elapsedTime.mul(history[i - 1].amount).mul(multiplier));
+            total = total.add(elapsedTime.mul(stake.amount).mul(multiplier));
         }
         return total.div(SECONDS_PER_DAY);
     }
@@ -224,13 +224,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id for energy calculation
      * @return energy amount (per day)
      */
-    function getDailyLBAEnergyProduction(address addr, uint256 periodId)
-        public
-        view
-        nonZero(addr)
-        validPeriodId(periodId)
-        returns (uint256)
-    {
+    function getDailyLBAEnergyProduction(address addr, uint256 periodId) public view nonZero(addr) returns (uint256) {
         Period memory period = getPeriod(periodId);
         return lba_.claimableLPAmount(addr).mul(period.lbaLPMultiplier);
     }
@@ -244,6 +238,17 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      */
     function getEnergy(address addr, uint256 periodId) public view returns (uint256) {
         return calculateEnergy(addr, periodId) - getConsumedEnergy(addr) + getRemainingLBAEnergy(addr, periodId);
+    }
+
+    /**
+     * @dev Get the energy amount available for address `addr` within current period
+     *
+     * @param addr The wallet address to get energy for
+     * @return Energy amount available
+     */
+    function getEnergyForCurrentPeriod(address addr) public view returns (uint256) {
+        uint256 periodId = getCurrentPeriodId();
+        return periodId > 0 ? getEnergy(addr, periodId) : 0;
     }
 
     /**
@@ -320,7 +325,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @return current periodId
      */
     function getCurrentPeriodId() public view returns (uint256) {
-        for (uint256 index = 1; index <= periodIdCounter; index++) {
+        for (uint256 index = 1; index <= periodIdCounter; ++index) {
             Period memory p = periods[index];
             if (currentTime() >= uint256(p.startTime) && currentTime() < uint256(p.endTime)) {
                 return index;
@@ -386,7 +391,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param _periods The list of periods to be added
      */
     function _addPeriods(Period[] memory _periods) internal {
-        for (uint256 i = 0; i < _periods.length; i++) {
+        for (uint256 i = 0; i < _periods.length; ++i) {
             _addPeriod(_periods[i]);
         }
     }
