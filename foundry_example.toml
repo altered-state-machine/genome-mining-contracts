@@ -8,8 +8,9 @@ remappings = [
   'forge-std/=node_modules/@ecmendenhall/forge-std/src/',
   'ds-test/=node_modules/@ecmendenhall/ds-test/src/',
   'hardhat/=node_modules/hardhat',
+  'erc721a/=node_modules/erc721a',
 ]
-# solc = "0.8.6" # to use a specific local solc install set the path as `solc = "<path to solc>/solc"`
+solc = "0.8.15" # to use a specific local solc install set the path as `solc = "<path to solc>/solc"`
 src = "tests/"
 
 ## set only when the `hardhat` profile is selected
