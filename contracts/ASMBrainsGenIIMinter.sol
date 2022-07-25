@@ -97,13 +97,14 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
         uint256 periodId
     ) external nonReentrant {
         uint256 quantity = hashes.length;
-        require(quantity <= remainingSupply(periodId), "Max supply exceeded");
+        require(quantity < remainingSupply(periodId) + 1, "Max supply exceeded");
         PeriodConfig memory config = configuration[periodId];
         require(quantity > 0, "Hashes cannot be empty");
-        require(quantity <= config.maxQuantityPerTx, "Too many hashes");
-        require(currentTime() >= config.startTime, "Not started");
+        require(quantity < config.maxQuantityPerTx + 1, "Too many hashes");
+        require(currentTime() + 1 > config.startTime, "Not started");
         require(currentTime() < config.endTime, "Already finished");
-        // Only allow use enery accumulated from previous production cycles
+        // Only allow use enery accumulated from previous production cycles. Please refer to the following link for details
+        // https://github.com/altered-state-machine/genome-mining-contracts/blob/main/audit/requirements.md#business-requirements
         require(periodId < energyConverter.getCurrentPeriodId(), "Invalid periodId");
         require(_verify(_hash(hashes, msg.sender, brain.numberMinted(msg.sender)), signature), "Invalid signature");
 

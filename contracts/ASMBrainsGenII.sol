@@ -5,11 +5,12 @@ pragma solidity ^0.8.15;
 import "erc721a/contracts/extensions/ERC721AQueryable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./libraries/IPFS.sol";
+import "./helpers/Util.sol";
 
-contract ASMBrainGenII is AccessControl, IPFS, ERC721AQueryable {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+bytes32 constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+bytes32 constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
+contract ASMBrainGenII is Util, AccessControl, IPFS, ERC721AQueryable {
     string public baseURI = "ipfs://";
 
     mapping(uint256 => bytes32) public tokenHash;
@@ -46,7 +47,7 @@ contract ASMBrainGenII is AccessControl, IPFS, ERC721AQueryable {
      * @return The tokenURL as a string
      */
     function tokenURI(uint256 tokenId) public view override(IERC721A, ERC721A) returns (string memory) {
-        require(_exists(tokenId), "URI query for nonexistent token");
+        if (!_exists(tokenId)) revert InvalidInput(TOKEN_NOT_EXIST);
         bytes32 hash = tokenHash[tokenId];
         return string(abi.encodePacked(_baseURI(), cidv0(hash)));
     }
@@ -71,30 +72,43 @@ contract ASMBrainGenII is AccessControl, IPFS, ERC721AQueryable {
     }
 
     /**
-     * @notice Update minter contracts or wallets
+     * @notice Add a new minter address (contract or wallet)
      * @dev This function can only to called from contracts or wallets with ADMIN_ROLE
-     * @param _oldMinter The old minter address to be revoked
-     * @param _newMinter The new minted address to be granted
+     * @param _newMinter The new minted address to be added
      */
-    function updateMinter(address _oldMinter, address _newMinter) external onlyRole(ADMIN_ROLE) {
-        if (_oldMinter != address(0)) {
-            _revokeRole(MINTER_ROLE, _oldMinter);
-        }
-
-        if (_newMinter != address(0)) {
-            _grantRole(MINTER_ROLE, _newMinter);
-        }
+    function addMinter(address _newMinter) external onlyRole(ADMIN_ROLE) {
+        if (_newMinter == address(0)) revert InvalidInput(INVALID_MINTER);
+        _grantRole(MINTER_ROLE, _newMinter);
     }
 
     /**
-     * @notice Update admin contract or wallet
+     * @notice Remove an existing minter
      * @dev This function can only to called from contracts or wallets with ADMIN_ROLE
-     * @param _oldAdmin The old admin address to be revoked
+     * @param _minter The minter address to be removed
+     */
+    function removeMinter(address _minter) external onlyRole(ADMIN_ROLE) {
+        if (!hasRole(MINTER_ROLE, _minter)) revert InvalidInput(INVALID_MINTER);
+        _revokeRole(MINTER_ROLE, _minter);
+    }
+
+    /**
+     * @notice Add admin address (contract or wallet)
+     * @dev This function can only to called from contracts or wallets with ADMIN_ROLE
      * @param _newAdmin The new admin address to be granted
      */
-    function updateAdmin(address _oldAdmin, address _newAdmin) external onlyRole(ADMIN_ROLE) {
-        _revokeRole(ADMIN_ROLE, _oldAdmin);
+    function addAdmin(address _newAdmin) external onlyRole(ADMIN_ROLE) {
+        if (_newAdmin == address(0)) revert InvalidInput(INVALID_ADMIN);
         _grantRole(ADMIN_ROLE, _newAdmin);
+    }
+
+    /**
+     * @notice Remove admin address
+     * @dev This function can only to called from contracts or wallets with ADMIN_ROLE
+     * @param _admin The new admin address to be removed
+     */
+    function removeAdmin(address _admin) external onlyRole(ADMIN_ROLE) {
+        if (!hasRole(ADMIN_ROLE, _admin)) revert InvalidInput(INVALID_ADMIN);
+        _revokeRole(ADMIN_ROLE, _admin);
     }
 
     /**

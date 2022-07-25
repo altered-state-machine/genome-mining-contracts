@@ -21,6 +21,8 @@ contract Util {
     string constant INVALID_ASTO_CONTRACT = "Invalid ASTO contract";
     string constant INVALID_LP_CONTRACT = "Invalid LP contract";
     string constant INVALID_LBA_CONTRACT = "Invalid LBA contract";
+    string constant INVALID_MINTER = "Invalid minter address";
+    string constant INVALID_ADMIN = "Invalid admin address";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
     string constant WRONG_PERIOD_ID = "Wrong periodId";
@@ -28,6 +30,7 @@ contract Util {
     string constant INSUFFICIENT_BALANCE = "Insufficient token balance";
     string constant INSUFFICIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
     string constant NO_STAKES = "No stakes yet";
+    string constant TOKEN_NOT_EXIST = "Nonexistent token";
 
     /**
      * @notice Among others, `isContract` will return false for the following
