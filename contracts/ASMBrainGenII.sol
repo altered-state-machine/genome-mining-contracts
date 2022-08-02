@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.13;
 
 import "erc721a/contracts/extensions/ERC721AQueryable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -19,6 +19,7 @@ contract ASMBrainGenII is Util, AccessControl, IPFS, ERC721AQueryable {
     event BaseURIUpdated(address indexed operator, string newbaseURI);
 
     constructor(address multisig) ERC721A("ASMBrainGenII", "ASMBrainGenII") {
+        if (multisig == address(0)) revert InvalidInput(INVALID_MULTISIG);
         _grantRole(ADMIN_ROLE, multisig);
     }
 
@@ -29,6 +30,8 @@ contract ASMBrainGenII is Util, AccessControl, IPFS, ERC721AQueryable {
      * @param hashes A list of IPFS Multihash digests. Each Gen II Brain should have an unique token hash
      */
     function mint(address recipient, bytes32[] calldata hashes) external onlyRole(MINTER_ROLE) {
+        if (recipient == address(0)) revert InvalidInput(INVALID_RECIPIENT);
+
         uint256 nextTokenId = _nextTokenId();
         uint256 quantity = hashes.length;
 

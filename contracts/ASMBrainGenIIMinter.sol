@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./interfaces/IConverterLogic.sol";
 import "./interfaces/IASMBrainGenII.sol";
-import "./interfaces/IConverter.sol";
+import "./interfaces/IASMBrainGenIIMinter.sol";
+import "./helpers/Util.sol";
 
-contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
+contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, ReentrancyGuard {
     using ECDSA for bytes32;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -22,7 +24,7 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
     }
 
     address private _signer;
-    IConverter public energyConverter;
+    IConverterLogic public energyConverter;
     IASMBrainGenII public brain;
 
     // PeriodId => config
@@ -39,10 +41,15 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
         address _converter,
         address _brain
     ) {
+        if (signer == address(0)) revert InvalidInput(INVALID_SIGNER);
+        if (_multisig == address(0)) revert InvalidInput(INVALID_MULTISIG);
+        if (_converter == address(0)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        if (_brain == address(0)) revert InvalidInput(INVALID_BRAIN);
+
         _signer = signer;
         _grantRole(ADMIN_ROLE, _multisig);
 
-        energyConverter = IConverter(_converter);
+        energyConverter = IConverterLogic(_converter);
         brain = IASMBrainGenII(_brain);
     }
 
@@ -97,20 +104,26 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
         uint256 periodId
     ) external nonReentrant {
         uint256 quantity = hashes.length;
-        require(quantity < remainingSupply(periodId) + 1, "Max supply exceeded");
+        if (quantity > remainingSupply(periodId)) revert InsufficientSupply(quantity, remainingSupply(periodId));
         PeriodConfig memory config = configuration[periodId];
-        require(quantity > 0, "Hashes cannot be empty");
-        require(quantity < config.maxQuantityPerTx + 1, "Too many hashes");
-        require(currentTime() + 1 > config.startTime, "Not started");
-        require(currentTime() < config.endTime, "Already finished");
+        if (quantity == 0) revert InvalidHashes(quantity, config.maxQuantityPerTx, 1);
+        if (quantity > config.maxQuantityPerTx) revert InvalidHashes(quantity, config.maxQuantityPerTx, 1);
+
+        // solhint-disable-next-line not-rely-on-time
+        if (block.timestamp < config.startTime) revert NotStarted();
+        // solhint-disable-next-line not-rely-on-time
+        if (block.timestamp >= config.endTime) revert AlreadyFinished();
+
         // Only allow use enery accumulated from previous production cycles. Please refer to the following link for details
         // https://github.com/altered-state-machine/genome-mining-contracts/blob/main/audit/requirements.md#business-requirements
-        require(periodId < energyConverter.getCurrentPeriodId(), "Invalid periodId");
-        require(_verify(_hash(hashes, msg.sender, brain.numberMinted(msg.sender)), signature), "Invalid signature");
+        if (periodId + 1 > energyConverter.getCurrentPeriodId())
+            revert InvalidPeriod(periodId, energyConverter.getCurrentPeriodId());
+
+        if (!_verify(_hash(hashes, msg.sender, brain.numberMinted(msg.sender)), signature)) revert InvalidSignature();
 
         uint256 remainingEnergy = energyConverter.getEnergy(msg.sender, periodId);
         uint256 energyToUse = quantity * config.energyPerBrain;
-        require(energyToUse <= remainingEnergy, "Insufficient energy");
+        if (energyToUse > remainingEnergy) revert InsufficientEnergy(energyToUse, remainingEnergy);
         energyConverter.useEnergy(msg.sender, periodId, energyToUse);
 
         brain.mint(msg.sender, hashes);
@@ -143,6 +156,7 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
      * @param signer The new signer address to update
      */
     function updateSigner(address signer) external onlyRole(ADMIN_ROLE) {
+        if (signer == address(0)) revert InvalidInput(INVALID_SIGNER);
         _signer = signer;
         emit SignerUpdated(msg.sender, signer);
     }
@@ -153,7 +167,8 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
      * @param converter The new converter contract address
      */
     function updateConverter(address converter) external onlyRole(ADMIN_ROLE) {
-        energyConverter = IConverter(converter);
+        if (converter == address(0)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        energyConverter = IConverterLogic(converter);
         emit ConverterUpdated(msg.sender, converter);
     }
 
@@ -163,16 +178,8 @@ contract ASMBrainGenIIMinter is AccessControl, ReentrancyGuard {
      * @param _brain The new brain contract address
      */
     function updateBrain(address _brain) external onlyRole(ADMIN_ROLE) {
+        if (_brain == address(0)) revert InvalidInput(INVALID_BRAIN);
         brain = IASMBrainGenII(_brain);
         emit BrainUpdated(msg.sender, _brain);
-    }
-
-    /**
-     * @notice Return the current block timestamp
-     * @return The current block timestamp
-     */
-    function currentTime() public view virtual returns (uint256) {
-        // solhint-disable-next-line not-rely-on-time
-        return block.timestamp;
     }
 }

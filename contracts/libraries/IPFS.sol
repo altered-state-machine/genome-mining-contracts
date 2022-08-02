@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.13;
 
 /**
  * @author BaseLabs
  * Ported from https://etherscan.io/address/0x3113a3c04aebec2b77eb38eabf6a2257b580c54b#code
  */
 contract IPFS {
-    bytes public constant ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    bytes private constant ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
     /**
      * @notice base58 is used to calculate the base58 encoded value of given bytes.
@@ -20,16 +20,17 @@ contract IPFS {
         uint256 size = data_.length;
         uint256 zeroCount;
         while (zeroCount < size && data_[zeroCount] == 0) {
-            zeroCount++;
+            ++zeroCount;
         }
         size = zeroCount + ((size - zeroCount) * 8351) / 6115 + 1;
         bytes memory slot = new bytes(size);
         uint32 carry;
         int256 m;
         int256 high = int256(size) - 1;
-        for (uint256 i = 0; i < data_.length; i++) {
+        uint256 dataLength = data_.length;
+        for (uint256 i = 0; i < dataLength; ++i) {
             m = int256(size - 1);
-            for (carry = uint8(data_[i]); m > high || carry != 0; m--) {
+            for (carry = uint8(data_[i]); m > high || carry != 0; --m) {
                 carry = carry + 256 * uint8(slot[uint256(m)]);
                 slot[uint256(m)] = bytes1(uint8(carry % 58));
                 carry /= 58;
@@ -37,10 +38,10 @@ contract IPFS {
             high = m;
         }
         uint256 n;
-        for (n = zeroCount; n < size && slot[n] == 0; n++) {}
+        for (n = zeroCount; n < size && slot[n] == 0; ++n) {}
         size = slot.length - (n - zeroCount);
         bytes memory out = new bytes(size);
-        for (uint256 i = 0; i < size; i++) {
+        for (uint256 i = 0; i < size; ++i) {
             uint256 j = i + n - zeroCount;
             out[i] = ALPHABET[uint8(slot[j])];
         }
@@ -56,7 +57,8 @@ contract IPFS {
         bytes memory hashString = new bytes(34);
         hashString[0] = 0x12;
         hashString[1] = 0x20;
-        for (uint256 i = 0; i < sha256Hash_.length; i++) {
+        uint256 hashLength = sha256Hash_.length;
+        for (uint256 i = 0; i < hashLength; ++i) {
             hashString[i + 2] = sha256Hash_[i];
         }
         return string(base58(hashString));
