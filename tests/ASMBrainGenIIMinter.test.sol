@@ -9,11 +9,10 @@ import "../contracts/Staking.sol";
 import "../contracts/mocks/MockedERC20.sol";
 import "../contracts/helpers/IStaking.sol";
 import "../contracts/interfaces/ILiquidityBootstrapAuction.sol";
-import "../contracts/interfaces/IASMBrainGenIIMinter.sol";
 
 import "../contracts/ASMBrainGenII.sol";
 import "../contracts/ASMBrainGenIIMinter.sol";
-import "../contracts/helpers/Util.sol";
+import "../contracts/interfaces/IASMBrainGenIIMinter.sol";
 import "../contracts/helpers/IConverter.sol";
 
 import "ds-test/test.sol";
@@ -37,7 +36,7 @@ bytes constant signature = abi.encodePacked(r, s, v);
 /**
  * @dev Tests for the ASM Genome Mining - ASM Brain GenII Minter contract
  */
-contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConverter, Util {
+contract ASMBrainGenIIMinterTestContract is DSTest, IConverter {
     EnergyStorage energyStorage_;
     EnergyStorage lbaEnergyStorage_;
     Controller controller_;
@@ -111,7 +110,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
         vm.prank(multisig);
         brain.addMinter(address(minter));
 
-        ASMBrainGenIIMinter.PeriodConfig memory config = ASMBrainGenIIMinter.PeriodConfig(
+        IASMBrainGenIIMinter.PeriodConfig memory config = IASMBrainGenIIMinter.PeriodConfig(
             cycle1EndTime,
             cycle1EndTime + 60 days,
             100,
@@ -166,7 +165,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InsufficientSupply.selector, 3, 1));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InsufficientSupply.selector, 3, 1));
         minter.mint(hashes, signature, 1);
     }
 
@@ -179,7 +178,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InvalidHashes.selector, 0, 30, 1));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidHashes.selector, 0, 30, 1));
         minter.mint(hashes, signature, 1);
     }
 
@@ -189,7 +188,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
         hashes[1] = hash2;
         hashes[2] = hash3;
 
-        ASMBrainGenIIMinter.PeriodConfig memory config = ASMBrainGenIIMinter.PeriodConfig(
+        IASMBrainGenIIMinter.PeriodConfig memory config = IASMBrainGenIIMinter.PeriodConfig(
             cycle1EndTime,
             cycle1EndTime + 60 days,
             100,
@@ -205,7 +204,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InvalidHashes.selector, 3, 2, 1));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidHashes.selector, 3, 2, 1));
         minter.mint(hashes, signature, 1);
     }
 
@@ -221,7 +220,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime - 1 days);
-        vm.expectRevert(abi.encodeWithSelector(NotStarted.selector));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.NotStarted.selector));
         minter.mint(hashes, signature, 1);
     }
 
@@ -237,7 +236,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime + 61 days);
-        vm.expectRevert(abi.encodeWithSelector(AlreadyFinished.selector));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.AlreadyFinished.selector));
         minter.mint(hashes, signature, 1);
     }
 
@@ -247,7 +246,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
         hashes[1] = hash2;
         hashes[2] = hash3;
 
-        ASMBrainGenIIMinter.PeriodConfig memory config = ASMBrainGenIIMinter.PeriodConfig(
+        IASMBrainGenIIMinter.PeriodConfig memory config = IASMBrainGenIIMinter.PeriodConfig(
             cycle1EndTime + 60 days,
             cycle1EndTime + 120 days,
             100,
@@ -263,7 +262,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime + 60 days);
-        vm.expectRevert(abi.encodeWithSelector(InvalidPeriod.selector, 2, 2));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidPeriod.selector, 2, 2));
         minter.mint(hashes, signature, 2);
     }
 
@@ -279,7 +278,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidSignature.selector));
         minter.mint(hashes, signature, 1);
     }
 
@@ -296,7 +295,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
         minter.mint(hashes, signature, 1);
-        vm.expectRevert(abi.encodeWithSelector(InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidSignature.selector));
         minter.mint(hashes, signature, 1);
     }
 
@@ -312,7 +311,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InsufficientEnergy.selector, 300, 200));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InsufficientEnergy.selector, 300, 200));
         minter.mint(hashes, signature, 1);
     }
 
@@ -389,7 +388,7 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
 
         vm.startPrank(someone);
         vm.warp(cycle1EndTime);
-        vm.expectRevert(abi.encodeWithSelector(InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidSignature.selector));
         minter.mint(hashes, signature, 1);
     }
 
@@ -399,6 +398,24 @@ contract ASMBrainGenIIMinterTestContract is DSTest, IASMBrainGenIIMinter, IConve
             "AccessControl: account 0xa847d497b38b9e11833eac3ea03921b40e6d847c is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775"
         );
         minter.updateSigner(someone);
+    }
+
+    function testUpdateSignerWithZeroAddress() public skip(false) {
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidSigner.selector));
+        minter.updateSigner(address(0));
+    }
+
+    function testUpdateCoverterWithZeroAddress() public skip(false) {
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidConverter.selector));
+        minter.updateConverter(address(0));
+    }
+
+    function testUpdateBrainWithZeroAddress() public skip(false) {
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenIIMinter.InvalidBrain.selector));
+        minter.updateBrain(address(0));
     }
 
     /** ----------------------------------

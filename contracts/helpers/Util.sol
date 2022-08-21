@@ -9,6 +9,9 @@ contract Util {
     error InvalidInput(string errMsg);
     error ContractError(string errMsg);
 
+    bytes32 constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
     string constant ALREADY_INITIALIZED = "Already initialized";
     string constant INVALID_MULTISIG = "Invalid multisig";
     string constant INVALID_DAO = "Invalid DAO";
@@ -18,14 +21,9 @@ contract Util {
     string constant INVALID_CONVERTER_LOGIC = "Invalid Converter Logic";
     string constant INVALID_ENERGY_STORAGE = "Invalid Energy Storage";
     string constant INVALID_LBA_ENERGY_STORAGE = "Invalid LBA Energy Storage";
-    string constant INVALID_BRAIN = "Invalid brain";
     string constant INVALID_ASTO_CONTRACT = "Invalid ASTO";
     string constant INVALID_LP_CONTRACT = "Invalid LP";
     string constant INVALID_LBA_CONTRACT = "Invalid LBA";
-    string constant INVALID_MINTER = "Invalid minter";
-    string constant INVALID_ADMIN = "Invalid admin";
-    string constant INVALID_RECIPIENT = "Invalid recipient";
-    string constant INVALID_SIGNER = "Invalid signer";
     string constant WRONG_ADDRESS = "Wrong or missed wallet address";
     string constant WRONG_AMOUNT = "Wrong or missed amount";
     string constant WRONG_PERIOD_ID = "Wrong periodId";
@@ -33,7 +31,6 @@ contract Util {
     string constant INSUFFICIENT_BALANCE = "Insufficient balance";
     string constant INSUFFICIENT_STAKED_AMOUNT = "Requested amount is greater than a stake";
     string constant NO_STAKES = "No stakes yet";
-    string constant TOKEN_NOT_EXIST = "Nonexistent token";
 
     /**
      * @notice Among others, `isContract` will return false for the following

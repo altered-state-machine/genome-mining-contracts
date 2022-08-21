@@ -3,6 +3,7 @@
 pragma solidity ^0.8.15;
 
 import "../contracts/ASMBrainGenII.sol";
+import "../contracts/interfaces/IASMBrainGenII.sol";
 import "../contracts/helpers/Util.sol";
 
 import "ds-test/test.sol";
@@ -19,7 +20,7 @@ bytes32 constant hash3 = 0x8a1c9eeb5ce404f74cdd230993aa21c19bd1b5012ca7615e48ef2
 string constant tokenURI3 = "ipfs://QmXdnHSGgRU4dUUmbe32UEfiPSZFFZGXFycapBhezfwKBT";
 
 /**
- * @dev Tests for the ASM Genome Mining - Energy Converter contract
+ * @dev Tests for the ASM Genome Mining - ASM Brain GenII contract
  */
 contract ASMBrainGenIITestContract is DSTest, Util {
     ASMBrainGenII brain;
@@ -73,6 +74,17 @@ contract ASMBrainGenIITestContract is DSTest, Util {
         assertEq(brain.tokenURI(0), tokenURI1, "tokenURI didn't match");
     }
 
+    function testMintToZeroAddress() public skip(false) {
+        bytes32[] memory hashes = new bytes32[](3);
+        hashes[0] = hash1;
+        hashes[1] = hash2;
+        hashes[2] = hash3;
+
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.InvalidRecipient.selector));
+        brain.mint(address(0), hashes);
+    }
+
     function testMintWithInvalidMinter() public skip(false) {
         bytes32[] memory hashes = new bytes32[](1);
         hashes[0] = hash1;
@@ -85,7 +97,7 @@ contract ASMBrainGenIITestContract is DSTest, Util {
     }
 
     function testTokenURIWithInvalidTokenID() public skip(false) {
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, TOKEN_NOT_EXIST));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.TokenNotExist.selector));
         brain.tokenURI(0);
     }
 
@@ -124,7 +136,7 @@ contract ASMBrainGenIITestContract is DSTest, Util {
 
     function testAddMinterWithInvalidAccount() public skip(false) {
         vm.prank(multisig);
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INVALID_MINTER));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.InvalidMinter.selector));
         brain.addMinter(address(0));
     }
 
@@ -150,7 +162,7 @@ contract ASMBrainGenIITestContract is DSTest, Util {
 
     function testRemoveMinterWithInvalidAccount() public skip(false) {
         vm.prank(multisig);
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INVALID_MINTER));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.InvalidMinter.selector));
         brain.removeMinter(someone);
     }
 
@@ -172,7 +184,7 @@ contract ASMBrainGenIITestContract is DSTest, Util {
 
     function testAddAdminWithInvalidAccount() public skip(false) {
         vm.prank(multisig);
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INVALID_ADMIN));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.InvalidAdmin.selector));
         brain.addAdmin(address(0));
     }
 
@@ -195,8 +207,26 @@ contract ASMBrainGenIITestContract is DSTest, Util {
 
     function testRemoveAdminWithInvalidAccount() public skip(false) {
         vm.prank(multisig);
-        vm.expectRevert(abi.encodeWithSelector(InvalidInput.selector, INVALID_ADMIN));
+        vm.expectRevert(abi.encodeWithSelector(IASMBrainGenII.InvalidAdmin.selector));
         brain.removeAdmin(someone);
+    }
+
+    function testCIDv0() public skip(false) {
+        bytes32[] memory inputs = new bytes32[](3);
+        string[] memory outputs = new string[](3);
+
+        inputs[0] = 0x4c1d3f8d288ffb699fd8863dcfb17a95a1ab634698c33b1f12e0e745e0cfd082;
+        outputs[0] = "QmTTmZYNUuwBXz1584A954NrcHdQ4zdf3eziRtjZLqicUq";
+
+        inputs[1] = 0xb057493760d27be9cf33d7aa9406f2fa638128806739f1e7f559d87707913b0e;
+        outputs[1] = "QmaD1fGGA8UEF5gFrrkZEGzMGmtJ3XMtzgMTx7SPQy22Dj";
+
+        inputs[2] = 0x8a1c9eeb5ce404f74cdd230993aa21c19bd1b5012ca7615e48ef2a4dad270b96;
+        outputs[2] = "QmXdnHSGgRU4dUUmbe32UEfiPSZFFZGXFycapBhezfwKBT";
+
+        for (uint256 i; i < inputs.length; ++i) {
+            assertEq(brain.cidv0(inputs[i]), outputs[i], "cidv0 didn't match");
+        }
     }
 
     /** ----------------------------------

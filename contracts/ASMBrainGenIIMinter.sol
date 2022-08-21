@@ -10,30 +10,16 @@ import "./interfaces/IASMBrainGenII.sol";
 import "./interfaces/IASMBrainGenIIMinter.sol";
 import "./helpers/Util.sol";
 
-contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, ReentrancyGuard {
+contract ASMBrainGenIIMinter is IASMBrainGenIIMinter, Util, AccessControl, ReentrancyGuard {
     using ECDSA for bytes32;
 
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
-    struct PeriodConfig {
-        uint256 startTime;
-        uint256 endTime;
-        uint256 energyPerBrain;
-        uint256 maxSupply;
-        uint256 maxQuantityPerTx;
-    }
-
     address private _signer;
+
     IConverterLogic public energyConverter;
     IASMBrainGenII public brain;
 
     // PeriodId => config
     mapping(uint256 => PeriodConfig) public configuration;
-
-    event ConfigurationUpdated(address indexed operator, uint256 periodId, PeriodConfig config);
-    event SignerUpdated(address indexed operator, address signer);
-    event ConverterUpdated(address indexed operator, address converter);
-    event BrainUpdated(address indexed operator, address _brain);
 
     constructor(
         address signer,
@@ -41,10 +27,10 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
         address _converter,
         address _brain
     ) {
-        if (signer == address(0)) revert InvalidInput(INVALID_SIGNER);
-        if (_multisig == address(0)) revert InvalidInput(INVALID_MULTISIG);
-        if (_converter == address(0)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
-        if (_brain == address(0)) revert InvalidInput(INVALID_BRAIN);
+        if (signer == address(0)) revert InvalidSigner();
+        if (_multisig == address(0)) revert InvalidMultisig();
+        if (_converter == address(0)) revert InvalidConverter();
+        if (_brain == address(0)) revert InvalidBrain();
 
         _signer = signer;
         _grantRole(ADMIN_ROLE, _multisig);
@@ -93,6 +79,22 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
     }
 
     /**
+     * @notice To validate the `signature` is signed by the _signer
+     * @param hashes The bytes32 hash list for signature
+     * @param addr User wallet address
+     * @param signature The signature passed from the caller
+     * @return Validation result
+     */
+    function validateSignature(
+        bytes32[] calldata hashes,
+        address addr,
+        uint256 numberMinted,
+        bytes calldata signature
+    ) public view returns (bool) {
+        return _verify(_hash(hashes, addr, numberMinted), signature);
+    }
+
+    /**
      * @notice Consume ASTO Energy to mint Gen II Brains with the IPFS hashes
      * @param hashes A list of IPFS Multihash digests. Each Gen II Brain should have an unique token hash
      * @param signature The signature for verification. It should be generated from the Dapp and can only be used once
@@ -119,7 +121,8 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
         if (periodId + 1 > energyConverter.getCurrentPeriodId())
             revert InvalidPeriod(periodId, energyConverter.getCurrentPeriodId());
 
-        if (!_verify(_hash(hashes, msg.sender, brain.numberMinted(msg.sender)), signature)) revert InvalidSignature();
+        if (!validateSignature(hashes, msg.sender, brain.numberMinted(msg.sender), signature))
+            revert InvalidSignature();
 
         uint256 remainingEnergy = energyConverter.getEnergy(msg.sender, periodId);
         uint256 energyToUse = quantity * config.energyPerBrain;
@@ -156,7 +159,7 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
      * @param signer The new signer address to update
      */
     function updateSigner(address signer) external onlyRole(ADMIN_ROLE) {
-        if (signer == address(0)) revert InvalidInput(INVALID_SIGNER);
+        if (signer == address(0)) revert InvalidSigner();
         _signer = signer;
         emit SignerUpdated(msg.sender, signer);
     }
@@ -167,7 +170,7 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
      * @param converter The new converter contract address
      */
     function updateConverter(address converter) external onlyRole(ADMIN_ROLE) {
-        if (converter == address(0)) revert InvalidInput(INVALID_CONVERTER_LOGIC);
+        if (converter == address(0)) revert InvalidConverter();
         energyConverter = IConverterLogic(converter);
         emit ConverterUpdated(msg.sender, converter);
     }
@@ -178,7 +181,7 @@ contract ASMBrainGenIIMinter is Util, IASMBrainGenIIMinter, AccessControl, Reent
      * @param _brain The new brain contract address
      */
     function updateBrain(address _brain) external onlyRole(ADMIN_ROLE) {
-        if (_brain == address(0)) revert InvalidInput(INVALID_BRAIN);
+        if (_brain == address(0)) revert InvalidBrain();
         brain = IASMBrainGenII(_brain);
         emit BrainUpdated(msg.sender, _brain);
     }
