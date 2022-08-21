@@ -115,7 +115,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         Period memory period = getPeriod(periodId);
         Stake[] memory astoHistory = stakingLogic_.getHistory(ASTO_TOKEN_ID, addr, period.endTime);
 
-        return _calculateEnergyForToken(astoHistory, period.astoMultiplier);
+        return _calculateEnergyForToken(astoHistory, period.astoMultiplier, period.endTime);
     }
 
     /**
@@ -135,7 +135,7 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         Period memory period = getPeriod(periodId);
         Stake[] memory lpHistory = stakingLogic_.getHistory(LP_TOKEN_ID, addr, period.endTime);
 
-        return _calculateEnergyForToken(lpHistory, period.lpMultiplier);
+        return _calculateEnergyForToken(lpHistory, period.lpMultiplier, period.endTime);
     }
 
     /**
@@ -143,11 +143,17 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      *
      * @param history The staking history for the staked token
      * @param multiplier The multiplier for staked token
+     * @param periodEndTime Only calculate energy generated before periodEndTime
      * @return total energy amount for the token
      */
-    function _calculateEnergyForToken(Stake[] memory history, uint256 multiplier) internal view returns (uint256) {
+    function _calculateEnergyForToken(
+        Stake[] memory history,
+        uint256 multiplier,
+        uint256 periodEndTime
+    ) internal view returns (uint256) {
         uint256 total = 0;
-        uint256 _time = currentTime();
+
+        uint256 _time = currentTime() < periodEndTime ? currentTime() : periodEndTime;
         for (uint256 i = history.length; i > 0; --i) {
             Stake memory stake = history[i - 1];
             if (_time < stake.time) continue;
@@ -171,7 +177,9 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
         uint256 lbaEnergyStartTime = getLBAEnergyStartTime();
         if (currentTime() < lbaEnergyStartTime) return 0;
 
-        uint256 elapsedTime = currentTime() - lbaEnergyStartTime;
+        Period memory period = getPeriod(periodId);
+        uint256 elapsedTimeInPeriod = currentTime() < period.endTime ? currentTime() : period.endTime;
+        uint256 elapsedTime = elapsedTimeInPeriod - lbaEnergyStartTime;
         uint256 dailyLbaEnergyAmount = getDailyLBAEnergyProduction(addr, periodId);
 
         return elapsedTime.mul(dailyLbaEnergyAmount).div(SECONDS_PER_DAY);
@@ -236,8 +244,11 @@ contract Converter is IConverter, IStaking, Util, PermissionControl, Pausable {
      * @param periodId The period id for energy calculation
      * @return Energy amount available
      */
-    function getEnergy(address addr, uint256 periodId) public view returns (uint256) {
-        return calculateEnergy(addr, periodId) - getConsumedEnergy(addr) + getRemainingLBAEnergy(addr, periodId);
+    function getEnergy(address addr, uint256 periodId) public view virtual returns (uint256) {
+        uint256 generatedEnergy = calculateEnergy(addr, periodId);
+        uint256 consumedEnergy = getConsumedEnergy(addr);
+        uint256 remainingEnergy = generatedEnergy > consumedEnergy ? generatedEnergy - consumedEnergy : 0;
+        return remainingEnergy + getRemainingLBAEnergy(addr, periodId);
     }
 
     /**

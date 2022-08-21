@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "latest",
-    "@uniswap/v2-periphery": "^1.1.0-beta.0"
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "erc721a": "^4.2.0"
   },
   "scripts": {
     "forge": "forge test"
