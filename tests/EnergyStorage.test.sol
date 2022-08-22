@@ -24,7 +24,8 @@ contract EnergyStorageTestContract is DSTest, IConverter, Util {
     // 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
     Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
-    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA);
+    // ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x6D08cF8E2dfDeC0Ca1b676425BcFCF1b0e064afA); // rinkeby
+    ILiquidityBootstrapAuction lba = ILiquidityBootstrapAuction(0x25720f1f60bd2F50C50841fF04d658da10BDf0B7); // goerli
     address someone = 0xA847d497b38B9e11833EAc3ea03921B40e6d847c;
     address deployer = address(this);
     address multisig = deployer; // for the testing we use deployer as a multisig
